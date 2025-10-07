@@ -27,10 +27,6 @@ interface NewDoctorState {
     email: string;
     address: string;
     status: DoctorStatus;
-    // Thêm các trường cần thiết khác cho bảng 'doctor' nếu bạn muốn chèn chúng
-    // Tuy nhiên, tôi sẽ để Supabase dùng các giá trị DEFAULT cho password, role, join_date...
-    // Nếu bạn muốn đặt password thủ công, bạn cần thêm nó vào đây
-    // password?: string; 
 }
 
 export function Doctors() {
@@ -149,14 +145,9 @@ export function Doctors() {
 
             const doctorDataToInsert = {
                 ...baseDoctorData,
-                // CHỈ GỬI CÁC TRƯỜNG CÓ TRONG BẢNG `doctor`
                 specialty_id: parseInt(specialty, 10), // Chuyển specialty_id từ string sang number
                 status: statusForDB, // Sử dụng giá trị đã chuyển đổi
-                // Các trường mặc định khác: password (Supabase Auth?), role, join_date... sẽ dùng DEFAULT của DB
-
-                // THÊM: Nếu bạn cần chèn password, hãy thêm logic tạo password ở đây:
-                password: 'DEFAULT_PASSWORD_HASH', // **Bạn cần xử lý password an toàn ở Backend/Auth Service**
-                // role: 'Doctor' // Sử dụng giá trị mặc định của DB nếu không gửi
+                password: '12345678',
             };
 
             const { data, error } = await supabase
@@ -181,9 +172,6 @@ export function Doctors() {
             setIsAddDialogOpen(false);
             resetNewDoctorState();
 
-            // 2. Xử lý thêm license/certificate (nếu cần)
-            // Nếu có bảng 'doctor_license' hoặc 'certificate_details' riêng biệt, 
-            // bạn sẽ chèn dữ liệu license_number và experience vào đó, sử dụng addedDoctor.id
             console.log('Doctor added successfully:', addedDoctor);
 
         } catch (error: any) {
@@ -222,8 +210,6 @@ export function Doctors() {
         // 3. Lọc theo Trạng thái
         const normalizedStatusFilter = statusFilter === 'On Leave' ? 'On_Leave' : statusFilter;
         const matchesStatus = statusFilter === 'All' || doctor.status === normalizedStatusFilter;
-
-        return matchesSearch && matchesSpecialty && matchesStatus;
 
         return matchesSearch && matchesSpecialty && matchesStatus;
     });
