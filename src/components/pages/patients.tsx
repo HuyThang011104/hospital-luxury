@@ -13,12 +13,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { Label } from '../ui/label';
 import { Avatar, AvatarFallback } from '../ui/avatar';
-import { Plus, Search, Filter, Download, Eye, Edit, Trash2, Calendar, ClipboardCheck, AlertTriangle, Key } from 'lucide-react';
+import { Plus, Search, Filter, Download, Eye, Edit, Trash2, Calendar, ClipboardCheck, AlertTriangle } from 'lucide-react';
 
 // Đường dẫn tương đối đã sửa (cùng cấp trong thư mục 'pages')
-import AlertNotification from './AlertNotification'; 
+import AlertNotification from './AlertNotification';
 // Giả định import supabase
-import { supabase } from '@/utils/backend/client'; 
+import { supabase } from '@/utils/backend/client';
 
 // --- TYPES & INTERFACES ---
 type PatientStatus = 'Active' | 'Inactive';
@@ -38,12 +38,12 @@ interface IPatient {
     password?: string | null;
 }
 interface IMedicalRecord {
-  id: number;
-  patient_id: number;
-  doctor_id: number;
-  diagnosis: string;
-  treatment: string;
-  record_date: string;
+    id: number;
+    patient_id: number;
+    doctor_id: number;
+    diagnosis: string;
+    treatment: string;
+    record_date: string;
 }
 interface PatientFormState {
     full_name: string;
@@ -82,13 +82,13 @@ export function Patients() {
     const [searchTerm, setSearchTerm] = useState('');
     const [genderFilter, setGenderFilter] = useState('All');
     const [statusFilter, setStatusFilter] = useState('All');
-    
+
     // Dialog States
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-    
+
     const [currentPatient, setCurrentPatient] = useState<IPatient | null>(null);
     const [formPatient, setFormPatient] = useState<PatientFormState>(initialFormState);
     const [addEditError, setAddEditError] = useState<string | null>(null);
@@ -123,7 +123,7 @@ export function Patients() {
         try {
             const { data, error } = await supabase
                 .from('patient')
-                .select('*'); 
+                .select('*');
 
             if (error) throw error;
             setPatients(data as IPatient[]);
@@ -136,22 +136,22 @@ export function Patients() {
         }
     };
     const fetchMedicalRecords = async () => {
-  setRecordsLoading(true);
-  try {
-    const { data, error } = await supabase
-      .from('medical_record')
-      .select('*')
-      .order('record_date', { ascending: false });
+        setRecordsLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('medical_record')
+                .select('*')
+                .order('record_date', { ascending: false });
 
-    if (error) throw error;
-    setMedicalRecords(data as IMedicalRecord[]);
-  } catch (error) {
-    console.error('Error fetching medical records:', error);
-    showNotification('Failed to load medical records.', 'error');
-  } finally {
-    setRecordsLoading(false);
-  }
-};
+            if (error) throw error;
+            setMedicalRecords(data as IMedicalRecord[]);
+        } catch (error) {
+            console.error('Error fetching medical records:', error);
+            showNotification('Failed to load medical records.', 'error');
+        } finally {
+            setRecordsLoading(false);
+        }
+    };
 
     // --- FORM & UI HANDLERS ---
     const mapPatientToForm = (patient: IPatient): PatientFormState => ({
@@ -163,7 +163,7 @@ export function Patients() {
         status: patient.status || 'Active',
         email: patient.email || '',
         address: patient.address || '',
-        password: '', 
+        password: '',
         join_date: patient.join_date ? patient.join_date.split('T')[0] : getTodayDate(),
     });
 
@@ -200,7 +200,7 @@ export function Patients() {
             const { data, error } = await supabase
                 .from('patient')
                 .insert([patientDataToInsert])
-                .select('*'); 
+                .select('*');
             if (error) throw error;
             const addedPatient = data[0] as IPatient;
             setPatients(prevPatients => [...prevPatients, addedPatient]);
@@ -212,7 +212,7 @@ export function Patients() {
             showNotification(`Failed to add patient: ${error.message || 'Unknown error'}`, 'error');
         }
     };
-    
+
     const openEditDialog = (patient: IPatient) => {
         setCurrentPatient(patient);
         setFormPatient(mapPatientToForm(patient));
@@ -241,9 +241,9 @@ export function Patients() {
                 .update(updates)
                 .eq('id', currentPatient.id)
                 .select('*');
-                
+
             if (error) throw error;
-            
+
             const updatedPatient = data[0] as IPatient;
             setPatients(prevPatients => prevPatients.map(p => p.id === updatedPatient.id ? updatedPatient : p));
             setIsEditDialogOpen(false);
@@ -254,7 +254,7 @@ export function Patients() {
             showNotification(`Failed to update patient: ${error.message || 'Unknown error'}`, 'error');
         }
     };
-    
+
     const openDeleteDialog = (patient: IPatient) => {
         setCurrentPatient(patient);
         setIsDeleteDialogOpen(true);
@@ -287,17 +287,17 @@ export function Patients() {
             showNotification('No data to export.', 'error');
             return;
         }
-        
+
         const header = ['ID', 'Full Name', 'Personal ID', 'Birth Date', 'Gender', 'Phone', 'Email', 'Address', 'Status', 'Join Date'];
-        const csvContent = filteredPatients.map((p: IPatient) => [ 
-            p.id, `"${p.full_name}"`, `"${p.personal_id || ''}"`, 
-            p.birth_date ? new Date(p.birth_date).toLocaleDateString('en-CA') : '', 
-            p.gender, `"${p.phone || ''}"`, `"${p.email || ''}"`, 
+        const csvContent = filteredPatients.map((p: IPatient) => [
+            p.id, `"${p.full_name}"`, `"${p.personal_id || ''}"`,
+            p.birth_date ? new Date(p.birth_date).toLocaleDateString('en-CA') : '',
+            p.gender, `"${p.phone || ''}"`, `"${p.email || ''}"`,
             `"${p.address || ''}"`, p.status,
             p.join_date ? new Date(p.join_date).toLocaleDateString('en-CA') : '',
         ].join(',')).join('\n');
         const csv = [header.join(','), csvContent].join('\n');
-        
+
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -308,7 +308,7 @@ export function Patients() {
         document.body.removeChild(link);
         showNotification(`Exported ${filteredPatients.length} records successfully!`, 'success');
     };
-    
+
     // VIEW DETAILS (SHOW/HIDE)
     const openViewDialog = (patient: IPatient) => {
         setCurrentPatient(patient);
@@ -325,13 +325,13 @@ export function Patients() {
             { label: 'Phone', value: patient.phone || 'N/A' },
             { label: 'Gender', value: patient.gender },
             { label: 'Status', value: patient.status },
-            { 
-                label: 'Birth Date', 
+            {
+                label: 'Birth Date',
                 value: patient.birth_date ? new Date(patient.birth_date).toLocaleDateString('vi-VN') : 'N/A',
                 icon: <Calendar className="h-4 w-4 text-muted-foreground mr-2" />
             },
-            { 
-                label: 'Join Date', 
+            {
+                label: 'Join Date',
                 value: patient.join_date ? new Date(patient.join_date).toLocaleDateString('vi-VN') : 'N/A',
                 icon: <ClipboardCheck className="h-4 w-4 text-muted-foreground mr-2" />
             },
@@ -359,14 +359,14 @@ export function Patients() {
         const variant = status === 'Active' ? 'default' : 'secondary';
         return <Badge variant={variant}>{status}</Badge>;
     };
-    
+
     const getGenderBadge = (gender: PatientGender) => {
-        const variant = gender === 'Male' ? 'outline' : 
+        const variant = gender === 'Male' ? 'outline' :
             gender === 'Female' ? 'secondary' : 'default';
         return <Badge variant={variant}>{gender}</Badge>;
     };
 
-    const filteredPatients = patients.filter((patient: IPatient) => { 
+    const filteredPatients = patients.filter((patient: IPatient) => {
         if (!patient || typeof patient !== 'object') return false;
         const searchFields = [patient.full_name, patient.personal_id, patient.email, patient.phone].filter((val): val is string => !!val).join(' ').toLowerCase();
         const matchesSearch = searchFields.includes(searchTerm.toLowerCase());
@@ -382,10 +382,10 @@ export function Patients() {
             {/* Hàng 1: Name, ID */}
             <div className="space-y-2"><Label htmlFor="full_name">Full Name *</Label><Input id="full_name" placeholder="Patient Name" value={data.full_name} onChange={onChange} /></div>
             <div className="space-y-2"><Label htmlFor="personal_id">Personal ID *</Label><Input id="personal_id" placeholder="e.g. 123456789" value={data.personal_id} onChange={onChange} /></div>
-            
+
             {/* Hàng 2: Birth Date, Gender */}
             <div className="space-y-2"><Label htmlFor="birth_date">Birth Date *</Label><Input id="birth_date" type="date" value={data.birth_date} onChange={onChange} /></div>
-             <div className="space-y-2">
+            <div className="space-y-2">
                 <Label htmlFor="gender">Gender</Label>
                 <Select value={data.gender} onValueChange={(val) => onSelectChange('gender', val)}>
                     <SelectTrigger id="gender"><SelectValue placeholder="Select gender" /></SelectTrigger>
@@ -396,21 +396,21 @@ export function Patients() {
                     </SelectContent>
                 </Select>
             </div>
-            
+
             {/* Hàng 3: Phone, Email */}
             <div className="space-y-2"><Label htmlFor="phone">Phone Number</Label><Input id="phone" placeholder="Enter phone number" value={data.phone} onChange={onChange} /></div>
             <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" type="email" placeholder="Enter email address" value={data.email} onChange={onChange} /></div>
-            
+
             {/* Hàng 4: Password, Join Date (Hai trường mới) */}
             <div className="space-y-2">
                 <Label htmlFor="password">Password *</Label>
                 <div className="relative">
-                    <Input 
-                        id="password" 
-                        type="password" 
-                        placeholder="Set user password" 
-                        value={data.password} 
-                        onChange={onChange} 
+                    <Input
+                        id="password"
+                        type="password"
+                        placeholder="Set user password"
+                        value={data.password}
+                        onChange={onChange}
                     />
                 </div>
             </div>
@@ -418,10 +418,10 @@ export function Patients() {
                 <Label htmlFor="join_date">Join Date</Label>
                 <Input id="join_date" type="date" value={data.join_date} onChange={onChange} />
             </div>
-            
+
             {/* Hàng 5: Address */}
             <div className="space-y-2 col-span-2"><Label htmlFor="address">Address</Label><Input id="address" placeholder="123 Main St" value={data.address} onChange={onChange} /></div>
-            
+
             {/* Hàng 6: Status */}
             <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
@@ -440,17 +440,17 @@ export function Patients() {
     if (loading) {
         return <div className="text-center py-10 text-xl font-medium">Loading patient data...</div>;
     }
-    
+
     return (
         <div className="space-y-6">
-            
+
             {/* CUSTOM ALERT NOTIFICATION */}
-            <AlertNotification 
-                message={notification.message} 
-                type={notification.type} 
-                onClose={closeNotification} 
+            <AlertNotification
+                message={notification.message}
+                type={notification.type}
+                onClose={closeNotification}
             />
-            
+
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-bold">Patient Management</h1>
@@ -476,7 +476,7 @@ export function Patients() {
                     </DialogContent>
                 </Dialog>
             </div>
-            
+
             <Tabs defaultValue="patients" className="space-y-4">
                 <TabsList>
                     <TabsTrigger value="patients">Patients ({patients.length})</TabsTrigger>
@@ -581,61 +581,61 @@ export function Patients() {
                 </TabsContent>
 
                 <TabsContent value="records">
-  <Card>
-    <CardHeader>
-      <CardTitle className="flex items-center">
-        <ClipboardCheck className="mr-2 h-5 w-5" />
-        Patient Health Records ({medicalRecords.length})
-      </CardTitle>
-      <p className="text-muted-foreground text-sm">
-        Overview of all diagnosis and treatments recorded by doctors.
-      </p>
-    </CardHeader>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center">
+                                <ClipboardCheck className="mr-2 h-5 w-5" />
+                                Patient Health Records ({medicalRecords.length})
+                            </CardTitle>
+                            <p className="text-muted-foreground text-sm">
+                                Overview of all diagnosis and treatments recorded by doctors.
+                            </p>
+                        </CardHeader>
 
-    <CardContent>
-      {recordsLoading ? (
-        <div className="text-center py-6 text-muted-foreground">Loading medical records...</div>
-      ) : medicalRecords.length === 0 ? (
-        <div className="text-center py-6 text-muted-foreground">No medical records found.</div>
-      ) : (
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Patient ID</TableHead>
-                <TableHead>Doctor ID</TableHead>
-                <TableHead>Diagnosis</TableHead>
-                <TableHead>Treatment</TableHead>
-                <TableHead>Record Date</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {medicalRecords.map((record) => (
-                <TableRow key={record.id}>
-                  <TableCell className="font-medium">{record.id}</TableCell>
-                  <TableCell>{record.patient_id}</TableCell>
-                  <TableCell>{record.doctor_id}</TableCell>
-                  <TableCell className="max-w-[250px] truncate" title={record.diagnosis}>
-                    {record.diagnosis || 'N/A'}
-                  </TableCell>
-                  <TableCell className="max-w-[250px] truncate" title={record.treatment}>
-                    {record.treatment || 'N/A'}
-                  </TableCell>
-                  <TableCell>
-                    {record.record_date
-                      ? new Date(record.record_date).toLocaleString('vi-VN')
-                      : 'N/A'}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-    </CardContent>
-  </Card>
-</TabsContent>
+                        <CardContent>
+                            {recordsLoading ? (
+                                <div className="text-center py-6 text-muted-foreground">Loading medical records...</div>
+                            ) : medicalRecords.length === 0 ? (
+                                <div className="text-center py-6 text-muted-foreground">No medical records found.</div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>ID</TableHead>
+                                                <TableHead>Patient ID</TableHead>
+                                                <TableHead>Doctor ID</TableHead>
+                                                <TableHead>Diagnosis</TableHead>
+                                                <TableHead>Treatment</TableHead>
+                                                <TableHead>Record Date</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {medicalRecords.map((record) => (
+                                                <TableRow key={record.id}>
+                                                    <TableCell className="font-medium">{record.id}</TableCell>
+                                                    <TableCell>{record.patient_id}</TableCell>
+                                                    <TableCell>{record.doctor_id}</TableCell>
+                                                    <TableCell className="max-w-[250px] truncate" title={record.diagnosis}>
+                                                        {record.diagnosis || 'N/A'}
+                                                    </TableCell>
+                                                    <TableCell className="max-w-[250px] truncate" title={record.treatment}>
+                                                        {record.treatment || 'N/A'}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {record.record_date
+                                                            ? new Date(record.record_date).toLocaleString('vi-VN')
+                                                            : 'N/A'}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
             </Tabs>
 
             {/* --- DIALOG XEM CHI TIẾT BỆNH NHÂN (SHOW/HIDE) --- */}
