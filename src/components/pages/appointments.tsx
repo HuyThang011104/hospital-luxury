@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
@@ -5,89 +6,48 @@ import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-// import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Label } from '../ui/label';
 import { Calendar } from '../ui/calendar';
-import { Plus, Search, Filter, Calendar as CalendarIcon, Clock, Eye, Edit, Trash2 } from 'lucide-react';
-// import { serverRequest } from '../utils/supabase/client';
+import { Plus, Search, Filter, Calendar as CalendarIcon, Clock, Edit } from 'lucide-react';
+import { supabase } from '@/utils/backend/client';
 import { Button } from '../ui/button';
+import type { IAppointment } from '@/interfaces/appointment';
+import type { IPatient } from '@/interfaces/patient';
+import type { IDoctor } from '@/interfaces/doctor';
+import type { IShift } from '@/interfaces/shift';
+import type { AppointmentStatus } from '@/types';
 
-const appointmentsData = [
-    {
-        id: 1,
-        patient: 'John Smith',
-        doctor: 'Dr. Emily Wilson',
-        date: '2024-03-15',
-        time: '10:00 AM',
-        shift: 'Morning',
-        status: 'Confirmed',
-        notes: 'Regular checkup',
-        department: 'Cardiology'
-    },
-    {
-        id: 2,
-        patient: 'Sarah Johnson',
-        doctor: 'Dr. Michael Davis',
-        date: '2024-03-15',
-        time: '11:30 AM',
-        shift: 'Morning',
-        status: 'Pending',
-        notes: 'Follow-up consultation',
-        department: 'Neurology'
-    },
-    {
-        id: 3,
-        patient: 'Mike Brown',
-        doctor: 'Dr. Sarah Miller',
-        date: '2024-03-15',
-        time: '2:00 PM',
-        shift: 'Afternoon',
-        status: 'Completed',
-        notes: 'Vaccination',
-        department: 'Pediatrics'
-    },
-    {
-        id: 4,
-        patient: 'Lisa Williams',
-        doctor: 'Dr. James Garcia',
-        date: '2024-03-16',
-        time: '9:00 AM',
-        shift: 'Morning',
-        status: 'Confirmed',
-        notes: 'Post-surgery follow-up',
-        department: 'Orthopedics'
-    },
-    {
-        id: 5,
-        patient: 'David Garcia',
-        doctor: 'Dr. Lisa Rodriguez',
-        date: '2024-03-16',
-        time: '3:30 PM',
-        shift: 'Afternoon',
-        status: 'Cancelled',
-        notes: 'Emergency consultation',
-        department: 'Emergency'
-    }
-];
+// Extended interface for appointments with related data
+interface IAppointmentWithDetails extends IAppointment {
+    patient: IPatient;
+    doctor: IDoctor;
+    shift: IShift | null;
+}
 
-const timeSlots = [
-    '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
-    '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'
-];
+// Interface cho state của form thêm cuộc hẹn
+interface NewAppointmentState {
+    patient_id: string;
+    doctor_id: string;
+    appointment_date: string;
+    shift_id: string;
+    status: AppointmentStatus;
+    notes: string;
+}
 
-const doctors = [
-    'Dr. Emily Wilson', 'Dr. Michael Davis', 'Dr. Sarah Miller',
-    'Dr. James Garcia', 'Dr. Lisa Rodriguez'
-];
-
-const patients = [
-    'John Smith', 'Sarah Johnson', 'Mike Brown',
-    'Lisa Williams', 'David Garcia'
-];
+// const timeSlots = [
+//     '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
+//     '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM'
+// ];
 
 export function Appointments() {
-    const [appointments, setAppointments] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [appointments, setAppointments] = useState<IAppointmentWithDetails[]>([]);
+    const [appointmentsLoading, setAppointmentsLoading] = useState(true);
+    const [patients, setPatients] = useState<IPatient[]>([]);
+    const [patientsLoading, setPatientsLoading] = useState(true);
+    const [doctors, setDoctors] = useState<IDoctor[]>([]);
+    const [doctorsLoading, setDoctorsLoading] = useState(true);
+    const [shifts, setShifts] = useState<IShift[]>([]);
+    const [shiftsLoading, setShiftsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
     const [doctorFilter, setDoctorFilter] = useState('All');
@@ -95,89 +55,214 @@ export function Appointments() {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
     const [viewMode, setViewMode] = useState<'calendar' | 'table'>('table');
-    const [newAppointment, setNewAppointment] = useState({
-        patient: '',
-        doctor: '',
-        date: '',
-        time: '',
-        shift: '',
+    const [addAppointmentError, setAddAppointmentError] = useState<string | null>(null);
+    const [newAppointment, setNewAppointment] = useState<NewAppointmentState>({
+        patient_id: '',
+        doctor_id: '',
+        appointment_date: '',
+        shift_id: '',
         status: 'Pending',
         notes: ''
     });
 
     useEffect(() => {
         fetchAppointments();
+        fetchPatients();
+        fetchDoctors();
+        fetchShifts();
     }, []);
 
+    // Hàm chung để cập nhật state form
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { id, value } = e.target;
+        setNewAppointment(prev => ({
+            ...prev,
+            [id]: value
+        }));
+    };
+
+    // Hàm cho Select Component
+    const handleSelectChange = (id: keyof NewAppointmentState, value: string) => {
+        setNewAppointment(prev => ({ ...prev, [id]: value }));
+    };
+
     const fetchAppointments = async () => {
+        setAppointmentsLoading(true);
         try {
-            const response = await serverRequest('/appointments');
-            setAppointments(response.appointments || []);
+            const { data, error } = await supabase
+                .from('appointment')
+                .select(`
+                    id, patient_id, doctor_id, appointment_date, shift_id, status, notes,
+                    patient ( id, full_name, phone, email ),
+                    doctor ( id, full_name, username, phone, email, specialty ( id, name ) ),
+                    shift ( id, name, start_time, end_time )
+                `);
+            if (error) throw error;
+            setAppointments(data as unknown as IAppointmentWithDetails[] || []);
         } catch (error) {
             console.error('Error fetching appointments:', error);
         } finally {
-            setLoading(false);
+            setAppointmentsLoading(false);
         }
     };
 
-    const handleAddAppointment = async () => {
+    const fetchPatients = async () => {
+        setPatientsLoading(true);
         try {
-            const response = await serverRequest('/appointments', {
-                method: 'POST',
-                body: JSON.stringify(newAppointment)
-            });
-
-            setAppointments([...appointments, response.appointment]);
-            setIsAddDialogOpen(false);
-            setNewAppointment({
-                patient: '',
-                doctor: '',
-                date: '',
-                time: '',
-                shift: '',
-                status: 'Pending',
-                notes: ''
-            });
+            const { data, error } = await supabase
+                .from('patient')
+                .select('*')
+                .eq('status', 'Active');
+            if (error) throw error;
+            setPatients(data || []);
         } catch (error) {
+            console.error('Error fetching patients:', error);
+        } finally {
+            setPatientsLoading(false);
+        }
+    };
+
+    const fetchDoctors = async () => {
+        setDoctorsLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('doctor')
+                .select(`
+                    id, full_name, username, phone, email, status,
+                    specialty ( id, name, description )
+                `)
+                .eq('status', 'Active');
+            if (error) throw error;
+            setDoctors(data as unknown as IDoctor[] || []);
+        } catch (error) {
+            console.error('Error fetching doctors:', error);
+        } finally {
+            setDoctorsLoading(false);
+        }
+    };
+
+    const fetchShifts = async () => {
+        setShiftsLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('shift')
+                .select('*');
+            if (error) throw error;
+            setShifts(data || []);
+        } catch (error) {
+            console.error('Error fetching shifts:', error);
+        } finally {
+            setShiftsLoading(false);
+        }
+    };
+
+    const resetNewAppointmentState = () => {
+        setNewAppointment({
+            patient_id: '',
+            doctor_id: '',
+            appointment_date: '',
+            shift_id: '',
+            status: 'Pending',
+            notes: ''
+        });
+        setAddAppointmentError(null);
+    };
+
+    const handleAddAppointment = async () => {
+        setAddAppointmentError(null);
+
+        // Kiểm tra validation cơ bản
+        if (!newAppointment.patient_id || !newAppointment.doctor_id || !newAppointment.appointment_date) {
+            setAddAppointmentError("Please fill in all required fields (Patient, Doctor, Date).");
+            return;
+        }
+
+        try {
+            // 1. Chuẩn bị dữ liệu để chèn
+            const appointmentDataToInsert = {
+                patient_id: parseInt(newAppointment.patient_id, 10),
+                doctor_id: parseInt(newAppointment.doctor_id, 10),
+                appointment_date: newAppointment.appointment_date,
+                shift_id: newAppointment.shift_id ? parseInt(newAppointment.shift_id, 10) : null,
+                status: newAppointment.status,
+                notes: newAppointment.notes || null
+            };
+
+            const { data, error } = await supabase
+                .from('appointment')
+                .insert([appointmentDataToInsert])
+                .select(`
+                    id, patient_id, doctor_id, appointment_date, shift_id, status, notes,
+                    patient ( id, full_name, phone, email ),
+                    doctor ( id, full_name, username, phone, email, specialty ( id, name ) ),
+                    shift ( id, name, start_time, end_time )
+                `);
+
+            if (error) {
+                console.error('Supabase error adding appointment:', error);
+                throw new Error(error.message);
+            }
+
+            const addedAppointment = data[0] as unknown as IAppointmentWithDetails;
+            setAppointments(prevAppointments => [...prevAppointments, addedAppointment]);
+
+            // Đóng dialog và reset form
+            setIsAddDialogOpen(false);
+            resetNewAppointmentState();
+
+            console.log('Appointment added successfully:', addedAppointment);
+        } catch (error: any) {
             console.error('Error adding appointment:', error);
+            setAddAppointmentError(`Failed to add appointment: ${error.message || 'Unknown error'}`);
         }
     };
 
     const filteredAppointments = appointments.filter(appointment => {
         if (!appointment || typeof appointment !== 'object') return false;
 
-        const patient = appointment.patient || '';
-        const doctor = appointment.doctor || '';
+        const patientName = appointment.patient?.full_name || '';
+        const doctorName = appointment.doctor?.full_name || '';
         const notes = appointment.notes || '';
         const status = appointment.status || '';
-        const date = appointment.date || '';
+        const date = appointment.appointment_date ? new Date(appointment.appointment_date).toISOString().split('T')[0] : '';
 
-        const matchesSearch = patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            doctor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        const matchesSearch = patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            doctorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             notes.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = statusFilter === 'All' || status === statusFilter;
-        const matchesDoctor = doctorFilter === 'All' || doctor === doctorFilter;
+        const matchesDoctor = doctorFilter === 'All' || appointment.doctor_id?.toString() === doctorFilter;
         const matchesDate = dateFilter === 'All' || date === dateFilter;
 
         return matchesSearch && matchesStatus && matchesDoctor && matchesDate;
     });
 
-    const getStatusBadge = (status: string) => {
-        const variant = status === 'Confirmed' ? 'default' :
-            status === 'Pending' ? 'secondary' :
-                status === 'Completed' ? 'outline' : 'destructive';
+    const getStatusBadge = (status: AppointmentStatus) => {
+        const variant = status === 'Pending' ? 'secondary' :
+            status === 'Completed' ? 'outline' : 'destructive';
         return <Badge variant={variant}>{status}</Badge>;
     };
 
-    const getShiftColor = (shift: string) => {
-        return shift === 'Morning' ? 'text-blue-600' : shift === 'Afternoon' ? 'text-orange-600' : 'text-purple-600';
+    const getShiftColor = (shiftName: string) => {
+        return shiftName?.toLowerCase().includes('morning') ? 'text-blue-600' :
+            shiftName?.toLowerCase().includes('afternoon') ? 'text-orange-600' :
+                shiftName?.toLowerCase().includes('evening') ? 'text-purple-600' : 'text-gray-600';
     };
 
     // Calendar view data
     const getAppointmentsForDate = (date: Date) => {
         const dateString = date.toISOString().split('T')[0];
-        return appointments.filter(apt => apt && apt.date === dateString);
+        return appointments.filter(apt => {
+            const aptDate = apt?.appointment_date ? new Date(apt.appointment_date).toISOString().split('T')[0] : '';
+            return apt && aptDate === dateString;
+        });
     };
+
+    // Loading state
+    const loading = appointmentsLoading || patientsLoading || doctorsLoading || shiftsLoading;
+
+    if (loading) {
+        return <div className="text-center py-10">Loading appointments, patients, doctors, and shifts...</div>;
+    }
 
     return (
         <div className="space-y-6">
@@ -210,7 +295,10 @@ export function Appointments() {
                         </Button>
                     </div>
 
-                    <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                    <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+                        setIsAddDialogOpen(open);
+                        if (!open) resetNewAppointmentState();
+                    }}>
                         <DialogTrigger asChild>
                             <Button>
                                 <Plus className="mr-2 h-4 w-4" />
@@ -223,89 +311,103 @@ export function Appointments() {
                             </DialogHeader>
                             <div className="grid grid-cols-2 gap-4 py-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="patient">Patient</Label>
-                                    <Select>
+                                    <Label htmlFor="patient_id">Patient</Label>
+                                    <Select
+                                        value={newAppointment.patient_id}
+                                        onValueChange={(val) => handleSelectChange('patient_id', val)}
+                                    >
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select patient" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {patients.map(patient => (
-                                                <SelectItem key={patient} value={patient.toLowerCase().replace(' ', '-')}>
-                                                    {patient}
+                                                <SelectItem key={patient.id} value={patient.id.toString()}>
+                                                    {patient.full_name}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="doctor">Doctor</Label>
-                                    <Select>
+                                    <Label htmlFor="doctor_id">Doctor</Label>
+                                    <Select
+                                        value={newAppointment.doctor_id}
+                                        onValueChange={(val) => handleSelectChange('doctor_id', val)}
+                                    >
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select doctor" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {doctors.map(doctor => (
-                                                <SelectItem key={doctor} value={doctor.toLowerCase().replace(' ', '-')}>
-                                                    {doctor}
+                                                <SelectItem key={doctor.id} value={doctor.id.toString()}>
+                                                    Dr. {doctor.full_name}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="date">Date</Label>
-                                    <Input id="date" type="date" />
+                                    <Label htmlFor="appointment_date">Date</Label>
+                                    <Input
+                                        id="appointment_date"
+                                        type="date"
+                                        value={newAppointment.appointment_date}
+                                        onChange={handleInputChange}
+                                    />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="time">Time</Label>
-                                    <Select>
+                                    <Label htmlFor="shift_id">Shift</Label>
+                                    <Select
+                                        value={newAppointment.shift_id}
+                                        onValueChange={(val) => handleSelectChange('shift_id', val)}
+                                    >
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Select time" />
+                                            <SelectValue placeholder="Select shift (optional)" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {timeSlots.map(time => (
-                                                <SelectItem key={time} value={time}>
-                                                    {time}
+                                            <SelectItem value="none">No shift</SelectItem>
+                                            {shifts.map(shift => (
+                                                <SelectItem key={shift.id} value={shift.id.toString()}>
+                                                    {shift.name} ({shift.start_time} - {shift.end_time})
                                                 </SelectItem>
                                             ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="shift">Shift</Label>
-                                    <Select>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select shift" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="morning">Morning</SelectItem>
-                                            <SelectItem value="afternoon">Afternoon</SelectItem>
-                                            <SelectItem value="evening">Evening</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="status">Status</Label>
-                                    <Select>
+                                    <Select
+                                        value={newAppointment.status}
+                                        onValueChange={(val) => handleSelectChange('status', val as AppointmentStatus)}
+                                    >
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select status" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="confirmed">Confirmed</SelectItem>
-                                            <SelectItem value="pending">Pending</SelectItem>
+                                            <SelectItem value="Pending">Pending</SelectItem>
+                                            <SelectItem value="Completed">Completed</SelectItem>
+                                            <SelectItem value="Cancelled">Cancelled</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
                                 <div className="col-span-2 space-y-2">
                                     <Label htmlFor="notes">Notes</Label>
-                                    <Input id="notes" placeholder="Appointment notes or reason" />
+                                    <Input
+                                        id="notes"
+                                        placeholder="Appointment notes or reason"
+                                        value={newAppointment.notes}
+                                        onChange={handleInputChange}
+                                    />
                                 </div>
                             </div>
+                            {addAppointmentError && (
+                                <p className="text-red-500 text-sm mt-2">{addAppointmentError}</p>
+                            )}
                             <div className="flex justify-end space-x-2">
                                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                                     Cancel
                                 </Button>
-                                <Button onClick={() => setIsAddDialogOpen(false)}>
+                                <Button onClick={handleAddAppointment}>
                                     Schedule Appointment
                                 </Button>
                             </div>
@@ -336,7 +438,6 @@ export function Appointments() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="All">All Status</SelectItem>
-                                        <SelectItem value="Confirmed">Confirmed</SelectItem>
                                         <SelectItem value="Pending">Pending</SelectItem>
                                         <SelectItem value="Completed">Completed</SelectItem>
                                         <SelectItem value="Cancelled">Cancelled</SelectItem>
@@ -349,7 +450,7 @@ export function Appointments() {
                                     <SelectContent>
                                         <SelectItem value="All">All Doctors</SelectItem>
                                         {doctors.map(doctor => (
-                                            <SelectItem key={doctor} value={doctor}>{doctor}</SelectItem>
+                                            <SelectItem key={doctor.id} value={doctor.id.toString()}>Dr. {doctor.full_name}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
@@ -374,29 +475,29 @@ export function Appointments() {
                                         <TableHead>Shift</TableHead>
                                         <TableHead>Status</TableHead>
                                         <TableHead>Notes</TableHead>
-                                        <TableHead>Actions</TableHead>
+                                        {/* <TableHead>Actions</TableHead> */}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {filteredAppointments.map((appointment) => (
                                         <TableRow key={appointment.id}>
-                                            <TableCell>{appointment.patient}</TableCell>
-                                            <TableCell>{appointment.doctor}</TableCell>
-                                            <TableCell>{appointment.date}</TableCell>
+                                            <TableCell>{appointment.patient?.full_name || 'N/A'}</TableCell>
+                                            <TableCell>Dr. {appointment.doctor?.full_name || 'N/A'}</TableCell>
+                                            <TableCell>{appointment.appointment_date ? new Date(appointment.appointment_date).toLocaleDateString() : 'N/A'}</TableCell>
                                             <TableCell>
                                                 <div className="flex items-center">
                                                     <Clock className="mr-1 h-4 w-4 text-muted-foreground" />
-                                                    {appointment.time}
+                                                    {appointment.appointment_date ? new Date(appointment.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <span className={getShiftColor(appointment.shift)}>
-                                                    {appointment.shift}
+                                                <span className={getShiftColor(appointment.shift?.name || '')}>
+                                                    {appointment.shift?.name || 'No shift'}
                                                 </span>
                                             </TableCell>
                                             <TableCell>{getStatusBadge(appointment.status)}</TableCell>
-                                            <TableCell className="max-w-40 truncate">{appointment.notes}</TableCell>
-                                            <TableCell>
+                                            <TableCell className="max-w-40 truncate">{appointment.notes || '—'}</TableCell>
+                                            {/* <TableCell>
                                                 <div className="flex space-x-1">
                                                     <Button variant="ghost" size="sm">
                                                         <Eye className="h-4 w-4" />
@@ -408,7 +509,7 @@ export function Appointments() {
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </div>
-                                            </TableCell>
+                                            </TableCell> */}
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -450,18 +551,20 @@ export function Appointments() {
                                             <div key={appointment.id} className="flex items-center justify-between p-3 border rounded-lg">
                                                 <div className="flex-1">
                                                     <div className="flex items-center space-x-2">
-                                                        <span className="font-medium">{appointment.patient}</span>
+                                                        <span className="font-medium">{appointment.patient?.full_name || 'N/A'}</span>
                                                         <span className="text-muted-foreground">•</span>
-                                                        <span className="text-muted-foreground">{appointment.doctor}</span>
+                                                        <span className="text-muted-foreground">Dr. {appointment.doctor?.full_name || 'N/A'}</span>
                                                     </div>
                                                     <div className="flex items-center space-x-2 mt-1">
                                                         <Clock className="h-4 w-4 text-muted-foreground" />
-                                                        <span className="text-sm text-muted-foreground">{appointment.time}</span>
-                                                        <span className={`text-sm ${getShiftColor(appointment.shift)}`}>
-                                                            {appointment.shift}
+                                                        <span className="text-sm text-muted-foreground">
+                                                            {appointment.appointment_date ? new Date(appointment.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                                                        </span>
+                                                        <span className={`text-sm ${getShiftColor(appointment.shift?.name || '')}`}>
+                                                            {appointment.shift?.name || 'No shift'}
                                                         </span>
                                                     </div>
-                                                    <p className="text-sm text-muted-foreground mt-1">{appointment.notes}</p>
+                                                    <p className="text-sm text-muted-foreground mt-1">{appointment.notes || 'No notes'}</p>
                                                 </div>
                                                 <div className="flex items-center space-x-2">
                                                     {getStatusBadge(appointment.status)}

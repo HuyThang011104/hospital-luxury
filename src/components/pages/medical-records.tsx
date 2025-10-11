@@ -1,3 +1,4 @@
+/* eslint-disable no-dupe-else-if */
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -7,187 +8,169 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Search, Eye, FileText, Pill, TestTube, Download, Calendar } from 'lucide-react';
-import { serverRequest } from '@/utils/backend/client';
+import { supabase } from '@/utils/backend/client';
+import type { IMedicalRecord } from '@/interfaces/medical_record';
+import type { IPrescription } from '@/interfaces/prescription';
+import type { ILabTest } from '@/interfaces/lab_test';
+import type { IPatient } from '@/interfaces/patient';
+import type { IDoctor } from '@/interfaces/doctor';
+import type { IMedicine } from '@/interfaces/medicine';
 
-const medicalRecordsData = [
-    {
-        id: 1,
-        patient: 'John Smith',
-        doctor: 'Dr. Emily Wilson',
-        diagnosis: 'Hypertension',
-        treatment: 'Blood pressure medication and lifestyle changes',
-        date: '2024-03-10',
-        severity: 'Moderate',
-        department: 'Cardiology'
-    },
-    {
-        id: 2,
-        patient: 'Sarah Johnson',
-        doctor: 'Dr. Michael Davis',
-        diagnosis: 'Migraine',
-        treatment: 'Pain management and trigger avoidance',
-        date: '2024-03-08',
-        severity: 'Mild',
-        department: 'Neurology'
-    },
-    {
-        id: 3,
-        patient: 'Mike Brown',
-        doctor: 'Dr. Sarah Miller',
-        diagnosis: 'Common Cold',
-        treatment: 'Rest and symptomatic treatment',
-        date: '2024-03-05',
-        severity: 'Mild',
-        department: 'Pediatrics'
-    },
-    {
-        id: 4,
-        patient: 'Lisa Williams',
-        doctor: 'Dr. James Garcia',
-        diagnosis: 'Fractured Wrist',
-        treatment: 'Cast application and physical therapy',
-        date: '2024-03-01',
-        severity: 'Moderate',
-        department: 'Orthopedics'
-    }
-];
+// Extended interface for medical records with related data
+interface IMedicalRecordWithDetails extends IMedicalRecord {
+    patient: IPatient;
+    doctor: IDoctor;
+}
 
-const prescriptionsData = [
-    {
-        id: 1,
-        recordId: 1,
-        medicine: 'Lisinopril',
-        dosage: '10mg',
-        frequency: 'Once daily',
-        duration: '30 days',
-        prescribedBy: 'Dr. Emily Wilson',
-        date: '2024-03-10'
-    },
-    {
-        id: 2,
-        recordId: 1,
-        medicine: 'Amlodipine',
-        dosage: '5mg',
-        frequency: 'Once daily',
-        duration: '30 days',
-        prescribedBy: 'Dr. Emily Wilson',
-        date: '2024-03-10'
-    },
-    {
-        id: 3,
-        recordId: 2,
-        medicine: 'Sumatriptan',
-        dosage: '50mg',
-        frequency: 'As needed',
-        duration: '10 days',
-        prescribedBy: 'Dr. Michael Davis',
-        date: '2024-03-08'
-    },
-    {
-        id: 4,
-        recordId: 4,
-        medicine: 'Ibuprofen',
-        dosage: '400mg',
-        frequency: 'Every 8 hours',
-        duration: '7 days',
-        prescribedBy: 'Dr. James Garcia',
-        date: '2024-03-01'
-    }
-];
+// Extended interface for prescriptions with related data
+interface IPrescriptionWithDetails extends IPrescription {
+    medical_record: IMedicalRecordWithDetails;
+    medicine: IMedicine;
+}
 
-const labTestsData = [
-    {
-        id: 1,
-        recordId: 1,
-        testType: 'Blood Pressure Monitoring',
-        result: '140/90 mmHg',
-        normalRange: '120/80 mmHg',
-        status: 'Abnormal',
-        date: '2024-03-10'
-    },
-    {
-        id: 2,
-        recordId: 1,
-        testType: 'Cholesterol Panel',
-        result: '220 mg/dL',
-        normalRange: '<200 mg/dL',
-        status: 'High',
-        date: '2024-03-10'
-    },
-    {
-        id: 3,
-        recordId: 2,
-        testType: 'MRI Brain',
-        result: 'No structural abnormalities',
-        normalRange: 'Normal',
-        status: 'Normal',
-        date: '2024-03-08'
-    },
-    {
-        id: 4,
-        recordId: 4,
-        testType: 'X-Ray Wrist',
-        result: 'Distal radius fracture',
-        normalRange: 'No fracture',
-        status: 'Abnormal',
-        date: '2024-03-01'
-    }
-];
+// Extended interface for lab tests with related data
+interface ILabTestWithDetails extends ILabTest {
+    medical_record: IMedicalRecordWithDetails;
+}
 
 export function MedicalRecords() {
-    const [records, setRecords] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [records, setRecords] = useState<IMedicalRecordWithDetails[]>([]);
+    const [recordsLoading, setRecordsLoading] = useState(true);
+    const [prescriptions, setPrescriptions] = useState<IPrescriptionWithDetails[]>([]);
+    const [prescriptionsLoading, setPrescriptionsLoading] = useState(true);
+    const [labTests, setLabTests] = useState<ILabTestWithDetails[]>([]);
+    const [labTestsLoading, setLabTestsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedRecord, setSelectedRecord] = useState<number | null>(null);
+    const [selectedRecord, setSelectedRecord] = useState<IMedicalRecordWithDetails | null>(null);
     const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetchMedicalRecords();
+        fetchPrescriptions();
+        fetchLabTests();
     }, []);
 
     const fetchMedicalRecords = async () => {
+        setRecordsLoading(true);
         try {
-            const response = await serverRequest('/medical-records');
-            setRecords(response.records || []);
+            const { data, error } = await supabase
+                .from('medical_record')
+                .select(`
+                    id, patient_id, doctor_id, appointment_id, diagnosis, treatment, record_date,
+                    patient ( id, full_name, phone, email ),
+                    doctor ( id, full_name, username, phone, email, specialty ( id, name ) )
+                `)
+                .order('record_date', { ascending: false });
+            if (error) throw error;
+            console.log("data: ", data);
+            setRecords(data as unknown as IMedicalRecordWithDetails[] || []);
         } catch (error) {
             console.error('Error fetching medical records:', error);
         } finally {
-            setLoading(false);
+            setRecordsLoading(false);
         }
     };
+
+    const fetchPrescriptions = async () => {
+        setPrescriptionsLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('prescription')
+                .select(`
+                    id, medical_record_id, medicine_id, dosage, frequency, duration,
+                    medical_record ( 
+                        id, 
+                        patient ( id, full_name, phone, email ),
+                        doctor ( id, full_name, username, phone, email, specialty ( id, name ) )
+                    ),
+                    medicine ( id, name, description, unit_price )
+                `);
+            if (error) throw error;
+            setPrescriptions(data as unknown as IPrescriptionWithDetails[] || []);
+        } catch (error) {
+            console.error('Error fetching prescriptions:', error);
+        } finally {
+            setPrescriptionsLoading(false);
+        }
+    };
+
+    const fetchLabTests = async () => {
+        setLabTestsLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('lab_test')
+                .select(`
+                    id, medical_record_id, test_type, result, test_date,
+                    medical_record ( 
+                        id, 
+                        patient ( id, full_name, phone, email ),
+                        doctor ( id, full_name, username, phone, email, specialty ( id, name ) )
+                    )
+                `)
+                .order('test_date', { ascending: false });
+            if (error) throw error;
+            setLabTests(data as unknown as ILabTestWithDetails[] || []);
+        } catch (error) {
+            console.error('Error fetching lab tests:', error);
+        } finally {
+            setLabTestsLoading(false);
+        }
+    };
+
+    const isLoadingComplete = () => {
+        return !recordsLoading && !prescriptionsLoading && !labTestsLoading;
+    };
+
+    useEffect(() => {
+        setLoading(!isLoadingComplete());
+    }, [recordsLoading, prescriptionsLoading, labTestsLoading]);
 
     const filteredRecords = records.filter(record => {
         if (!record || typeof record !== 'object') return false;
 
-        const patient = record.patient || '';
-        const doctor = record.doctor || '';
+        const patientName = record.patient?.full_name || '';
+        const doctorName = record.doctor?.full_name || '';
         const diagnosis = record.diagnosis || '';
+        const treatment = record.treatment || '';
 
-        return patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            doctor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            diagnosis.toLowerCase().includes(searchTerm.toLowerCase());
+        return patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            doctorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            diagnosis.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            treatment.toLowerCase().includes(searchTerm.toLowerCase());
     });
 
-    const getSeverityBadge = (severity: string) => {
-        const variant = severity === 'Severe' ? 'destructive' :
-            severity === 'Moderate' ? 'secondary' : 'default';
-        return <Badge variant={variant}>{severity}</Badge>;
+    const getTestStatusBadge = (result: string | null, testType: string) => {
+        if (!result) return <Badge variant="outline">Pending</Badge>;
+
+        const lowerResult = result.toLowerCase();
+        if (lowerResult.includes('normal') || lowerResult.includes('no') || lowerResult.includes('negative')) {
+            return <Badge variant="default">Normal</Badge>;
+        } else if (lowerResult.includes('abnormal') || lowerResult.includes('high') || lowerResult.includes('low')) {
+            return <Badge variant="destructive">Abnormal</Badge>;
+        } else if (testType.toLowerCase().includes('mri') && lowerResult.includes('no')) {
+            return <Badge variant="default">Normal</Badge>;
+        } else {
+            return <Badge variant="secondary">Review Required</Badge>;
+        }
     };
 
-    const getTestStatusBadge = (status: string) => {
-        const variant = status === 'Normal' ? 'default' :
-            status === 'High' || status === 'Abnormal' ? 'destructive' : 'secondary';
-        return <Badge variant={variant}>{status}</Badge>;
-    };
-
-    const openRecordDetail = (recordId: number) => {
-        setSelectedRecord(recordId);
+    const openRecordDetail = (record: IMedicalRecordWithDetails) => {
+        setSelectedRecord(record);
         setIsDetailDialogOpen(true);
     };
 
-    const selectedRecordData = selectedRecord ? medicalRecordsData.find(r => r.id === selectedRecord) : null;
-    const recordPrescriptions = selectedRecord ? prescriptionsData.filter(p => p.recordId === selectedRecord) : [];
-    const recordLabTests = selectedRecord ? labTestsData.filter(t => t.recordId === selectedRecord) : [];
+    const getRecordPrescriptions = (recordId: number) => {
+        return prescriptions.filter(p => p.medical_record_id === recordId);
+    };
+
+    const getRecordLabTests = (recordId: number) => {
+        return labTests.filter(t => t.medical_record_id === recordId);
+    };
+
+    if (loading) {
+        return <div className="text-center py-10">Loading medical records, prescriptions, and lab tests...</div>;
+    }
 
     return (
         <div className="space-y-6">
@@ -205,7 +188,7 @@ export function MedicalRecords() {
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
                         <CardTitle className="flex items-center">
                             <FileText className="mr-2 h-5 w-5" />
-                            All Medical Records
+                            All Medical Records ({filteredRecords.length})
                         </CardTitle>
                         <div className="relative">
                             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -227,7 +210,6 @@ export function MedicalRecords() {
                                     <TableHead>Doctor</TableHead>
                                     <TableHead>Diagnosis</TableHead>
                                     <TableHead>Treatment</TableHead>
-                                    <TableHead>Severity</TableHead>
                                     <TableHead>Date</TableHead>
                                     <TableHead>Actions</TableHead>
                                 </TableRow>
@@ -235,28 +217,34 @@ export function MedicalRecords() {
                             <TableBody>
                                 {filteredRecords.map((record) => (
                                     <TableRow key={record.id}>
-                                        <TableCell>{record.patient}</TableCell>
-                                        <TableCell>{record.doctor}</TableCell>
-                                        <TableCell>{record.diagnosis}</TableCell>
-                                        <TableCell className="max-w-60 truncate">{record.treatment}</TableCell>
-                                        <TableCell>{getSeverityBadge(record.severity)}</TableCell>
+                                        <TableCell>{record.patient?.full_name || 'N/A'}</TableCell>
+                                        <TableCell>Dr. {record.doctor?.full_name || 'N/A'}</TableCell>
+                                        <TableCell>{record.diagnosis || 'Not recorded'}</TableCell>
+                                        <TableCell className="max-w-60 truncate">{record.treatment || 'Not recorded'}</TableCell>
                                         <TableCell>
                                             <div className="flex items-center">
                                                 <Calendar className="mr-1 h-4 w-4 text-muted-foreground" />
-                                                {record.date}
+                                                {record.record_date ? new Date(record.record_date).toLocaleDateString() : 'N/A'}
                                             </div>
                                         </TableCell>
                                         <TableCell>
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                onClick={() => openRecordDetail(record.id)}
+                                                onClick={() => openRecordDetail(record)}
                                             >
                                                 <Eye className="h-4 w-4" />
                                             </Button>
                                         </TableCell>
                                     </TableRow>
                                 ))}
+                                {filteredRecords.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                            No medical records found matching your criteria.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
                             </TableBody>
                         </Table>
                     </div>
@@ -270,7 +258,7 @@ export function MedicalRecords() {
                         <DialogTitle>Medical Record Details</DialogTitle>
                     </DialogHeader>
 
-                    {selectedRecordData && (
+                    {selectedRecord && (
                         <div className="space-y-6">
                             {/* Record Overview */}
                             <Card>
@@ -281,27 +269,27 @@ export function MedicalRecords() {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <p className="text-sm text-muted-foreground">Patient</p>
-                                            <p className="font-medium">{selectedRecordData.patient}</p>
+                                            <p className="font-medium">{selectedRecord.patient?.full_name || 'N/A'}</p>
                                         </div>
                                         <div>
                                             <p className="text-sm text-muted-foreground">Doctor</p>
-                                            <p className="font-medium">{selectedRecordData.doctor}</p>
+                                            <p className="font-medium">Dr. {selectedRecord.doctor?.full_name || 'N/A'}</p>
                                         </div>
                                         <div>
                                             <p className="text-sm text-muted-foreground">Department</p>
-                                            <p className="font-medium">{selectedRecordData.department}</p>
+                                            <p className="font-medium">{selectedRecord.doctor?.specialty?.name || 'N/A'}</p>
                                         </div>
                                         <div>
                                             <p className="text-sm text-muted-foreground">Date</p>
-                                            <p className="font-medium">{selectedRecordData.date}</p>
+                                            <p className="font-medium">{selectedRecord.record_date ? new Date(selectedRecord.record_date).toLocaleDateString() : 'N/A'}</p>
                                         </div>
                                         <div className="col-span-2">
                                             <p className="text-sm text-muted-foreground">Diagnosis</p>
-                                            <p className="font-medium">{selectedRecordData.diagnosis}</p>
+                                            <p className="font-medium">{selectedRecord.diagnosis || 'Not recorded'}</p>
                                         </div>
                                         <div className="col-span-2">
                                             <p className="text-sm text-muted-foreground">Treatment</p>
-                                            <p className="font-medium">{selectedRecordData.treatment}</p>
+                                            <p className="font-medium">{selectedRecord.treatment || 'Not recorded'}</p>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -325,33 +313,33 @@ export function MedicalRecords() {
                                             <CardTitle>Prescribed Medications</CardTitle>
                                         </CardHeader>
                                         <CardContent>
-                                            {recordPrescriptions.length === 0 ? (
+                                            {getRecordPrescriptions(selectedRecord.id).length === 0 ? (
                                                 <p className="text-muted-foreground text-center py-4">
                                                     No prescriptions for this record
                                                 </p>
                                             ) : (
                                                 <div className="space-y-4">
-                                                    {recordPrescriptions.map((prescription) => (
+                                                    {getRecordPrescriptions(selectedRecord.id).map((prescription) => (
                                                         <div key={prescription.id} className="border rounded-lg p-4">
                                                             <div className="flex justify-between items-start">
                                                                 <div className="space-y-2">
-                                                                    <h4 className="font-medium">{prescription.medicine}</h4>
+                                                                    <h4 className="font-medium">{prescription.medicine?.name || 'Unknown Medicine'}</h4>
                                                                     <div className="grid grid-cols-3 gap-4 text-sm">
                                                                         <div>
                                                                             <span className="text-muted-foreground">Dosage: </span>
-                                                                            <span>{prescription.dosage}</span>
+                                                                            <span>{prescription.dosage || 'Not specified'}</span>
                                                                         </div>
                                                                         <div>
                                                                             <span className="text-muted-foreground">Frequency: </span>
-                                                                            <span>{prescription.frequency}</span>
+                                                                            <span>{prescription.frequency || 'Not specified'}</span>
                                                                         </div>
                                                                         <div>
                                                                             <span className="text-muted-foreground">Duration: </span>
-                                                                            <span>{prescription.duration}</span>
+                                                                            <span>{prescription.duration || 'Not specified'}</span>
                                                                         </div>
                                                                     </div>
                                                                     <p className="text-sm text-muted-foreground">
-                                                                        Prescribed by {prescription.prescribedBy} on {prescription.date}
+                                                                        Prescribed by Dr. {prescription.medical_record?.doctor?.full_name || 'N/A'}
                                                                     </p>
                                                                 </div>
                                                                 <Button variant="outline" size="sm">
@@ -373,32 +361,32 @@ export function MedicalRecords() {
                                             <CardTitle>Laboratory Tests</CardTitle>
                                         </CardHeader>
                                         <CardContent>
-                                            {recordLabTests.length === 0 ? (
+                                            {getRecordLabTests(selectedRecord.id).length === 0 ? (
                                                 <p className="text-muted-foreground text-center py-4">
                                                     No lab tests for this record
                                                 </p>
                                             ) : (
                                                 <div className="space-y-4">
-                                                    {recordLabTests.map((test) => (
+                                                    {getRecordLabTests(selectedRecord.id).map((test) => (
                                                         <div key={test.id} className="border rounded-lg p-4">
                                                             <div className="flex justify-between items-start">
                                                                 <div className="space-y-2">
                                                                     <div className="flex items-center space-x-2">
-                                                                        <h4 className="font-medium">{test.testType}</h4>
-                                                                        {getTestStatusBadge(test.status)}
+                                                                        <h4 className="font-medium">{test.test_type}</h4>
+                                                                        {getTestStatusBadge(test.result, test.test_type)}
                                                                     </div>
                                                                     <div className="grid grid-cols-2 gap-4 text-sm">
                                                                         <div>
                                                                             <span className="text-muted-foreground">Result: </span>
-                                                                            <span className="font-medium">{test.result}</span>
+                                                                            <span className="font-medium">{test.result || 'Pending'}</span>
                                                                         </div>
                                                                         <div>
-                                                                            <span className="text-muted-foreground">Normal Range: </span>
-                                                                            <span>{test.normalRange}</span>
+                                                                            <span className="text-muted-foreground">Test Date: </span>
+                                                                            <span>{test.test_date ? new Date(test.test_date).toLocaleDateString() : 'N/A'}</span>
                                                                         </div>
                                                                     </div>
                                                                     <p className="text-sm text-muted-foreground">
-                                                                        Performed on {test.date}
+                                                                        Ordered by Dr. {test.medical_record?.doctor?.full_name || 'N/A'}
                                                                     </p>
                                                                 </div>
                                                                 <Button variant="outline" size="sm">

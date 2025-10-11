@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -17,20 +18,20 @@ import { supabase } from '@/utils/backend/client';
 interface IPatient {
     id: number;
     full_name: string;
-    
+
 }
 
 
 interface IPayment {
     id: number;
-    patient_id: number; 
+    patient_id: number;
     amount: number;
     method: 'Insurance' | 'Card' | 'Cash';
     status: 'Paid' | 'Pending' | 'Cancelled';
-    date: string;
-    invoice_id: string; 
-    patient: IPatient; 
-    
+    payment_date: string;
+    invoice_id: string;
+    patient: IPatient;
+
     services?: { name: string; amount: number }[];
 }
 
@@ -38,31 +39,31 @@ interface IPayment {
 interface IInsurancePolicy {
     id: number;
     patient_id: number; // Foreign key
-    provider: string;
+    provider_name: string;
     policy_number: string;
     valid_from: string;
     valid_to: string;
     coverage: number;
     status: 'Active' | 'Expiring Soon' | 'Expired';
-    patient: IPatient; 
+    patient: IPatient;
 }
 
 export function Payments() {
-    
+
     const [payments, setPayments] = useState<IPayment[]>([]);
     const [insurancePolicies, setInsurancePolicies] = useState<IInsurancePolicy[]>([]);
     const [loading, setLoading] = useState(true);
 
-    
+
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
     const [methodFilter, setMethodFilter] = useState('All');
     const [selectedPayment, setSelectedPayment] = useState<number | null>(null);
     const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
 
-    
+
     useEffect(() => {
-       
+
         fetchPayments();
         fetchInsurancePolicies();
     }, []);
@@ -76,8 +77,9 @@ export function Payments() {
                     *,
                     patient:patient_id ( id, full_name )
                 `);
-            
+
             if (error) throw error;
+            console.log('Dữ liệu payment thực tế trả về:', data);
             setPayments(data as IPayment[]);
         } catch (error) {
             console.error('Error fetching payments:', error);
@@ -124,12 +126,6 @@ export function Payments() {
             case 'Insurance': return <Shield className="h-4 w-4" />;
             default: return <DollarSign className="h-4 w-4" />;
         }
-    };
-    
-    const getInsuranceStatusBadge = (status: string) => {
-        const variant = status === 'Active' ? 'default' :
-            status === 'Expiring Soon' ? 'secondary' : 'destructive';
-        return <Badge variant={variant}>{status}</Badge>;
     };
 
     const openInvoiceDetail = (paymentId: number) => {
@@ -198,7 +194,7 @@ export function Payments() {
                                     </Select>
                                     <Select value={methodFilter} onValueChange={setMethodFilter}>
                                         <SelectTrigger className="w-32">
-                                            <SelectValue placeholder="Method"/>
+                                            <SelectValue placeholder="Method" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="All">All Methods</SelectItem>
@@ -220,7 +216,6 @@ export function Payments() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Patient</TableHead>
-                                            <TableHead>Invoice ID</TableHead>
                                             <TableHead>Amount</TableHead>
                                             <TableHead>Method</TableHead>
                                             <TableHead>Status</TableHead>
@@ -234,8 +229,7 @@ export function Payments() {
                                                 {/* CHANGE: Lấy tên patient từ object */}
                                                 <TableCell>{payment.patient.full_name}</TableCell>
                                                 {/* CHANGE: invoiceId -> invoice_id */}
-                                                <TableCell className="font-mono">{payment.invoice_id}</TableCell>
-                                                <TableCell>${payment.amount.toFixed(2)}</TableCell>
+                                                <TableCell>{payment.amount} VNĐ</TableCell>
                                                 <TableCell>
                                                     <div className="flex items-center space-x-2">
                                                         {getMethodIcon(payment.method)}
@@ -243,7 +237,7 @@ export function Payments() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>{getStatusBadge(payment.status)}</TableCell>
-                                                <TableCell>{payment.date ? new Date(payment.date).toLocaleDateString('vi-VN') : 'N/A'}</TableCell>
+                                                <TableCell>{payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('vi-VN') : 'N/A'}</TableCell>
                                                 <TableCell>
                                                     <Button
                                                         variant="ghost"
@@ -282,8 +276,6 @@ export function Payments() {
                                             <TableHead>Policy Number</TableHead>
                                             <TableHead>Valid From</TableHead>
                                             <TableHead>Valid To</TableHead>
-                                            <TableHead>Coverage</TableHead>
-                                            <TableHead>Status</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -291,12 +283,10 @@ export function Payments() {
                                         {insurancePolicies.map((policy) => (
                                             <TableRow key={policy.id}>
                                                 <TableCell>{policy.patient.full_name}</TableCell>
-                                                <TableCell>{policy.provider}</TableCell>
+                                                <TableCell>{policy.provider_name}</TableCell>
                                                 <TableCell className="font-mono">{policy.policy_number}</TableCell>
                                                 <TableCell>{new Date(policy.valid_from).toLocaleDateString()}</TableCell>
                                                 <TableCell>{new Date(policy.valid_to).toLocaleDateString()}</TableCell>
-                                                <TableCell>{policy.coverage}%</TableCell>
-                                                <TableCell>{getInsuranceStatusBadge(policy.status)}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -306,7 +296,7 @@ export function Payments() {
                     </Card>
                 </TabsContent>
             </Tabs>
-            
+
             {/* Invoice Detail Dialog (Giả định services lấy từ đâu đó khác hoặc tạm thời bỏ qua) */}
             <Dialog open={isInvoiceDialogOpen} onOpenChange={setIsInvoiceDialogOpen}>
                 <DialogContent className="max-w-2xl">
@@ -323,7 +313,7 @@ export function Payments() {
                                 <div>
                                     <h3 className="text-lg font-semibold">HealthCare Hospital</h3>
                                     <p className="text-sm text-muted-foreground">Invoice #{selectedPaymentData.invoice_id}</p>
-                                    <p className="text-sm text-muted-foreground">Date: {new Date(selectedPaymentData.date).toLocaleDateString()}</p>
+                                    <p className="text-sm text-muted-foreground">Date: {new Date(selectedPaymentData.payment_date).toLocaleDateString()}</p>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-sm text-muted-foreground">Patient:</p>

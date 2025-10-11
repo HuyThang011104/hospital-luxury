@@ -318,25 +318,23 @@ export function SettingsPage() {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="hospitalName">Hospital Name</Label>
-                                        <Input id="hospitalName" defaultValue="HealthCare Hospital" />
+                                        <Input id="hospitalName" defaultValue="VINMEC" />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="timezone">Timezone</Label>
-                                        <Select defaultValue="est">
+                                        <Select defaultValue="vn">
                                             <SelectTrigger>
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="est">Eastern Time (EST)</SelectItem>
-                                                <SelectItem value="cst">Central Time (CST)</SelectItem>
-                                                <SelectItem value="mst">Mountain Time (MST)</SelectItem>
-                                                <SelectItem value="pst">Pacific Time (PST)</SelectItem>
+                                                <SelectItem value="vn">Vietnam</SelectItem>
+                                                <SelectItem value="utc">UTC</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="language">Default Language</Label>
-                                        <Select defaultValue="en">
+                                        <Select defaultValue="vn">
                                             <SelectTrigger>
                                                 <SelectValue />
                                             </SelectTrigger>
@@ -349,7 +347,7 @@ export function SettingsPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="currency">Currency</Label>
-                                        <Select defaultValue="usd">
+                                        <Select defaultValue="vnd">
                                             <SelectTrigger>
                                                 <SelectValue />
                                             </SelectTrigger>
@@ -465,20 +463,20 @@ export function SettingsPage() {
                                         <Label htmlFor="hospitalAddress">Hospital Address</Label>
                                         <Textarea
                                             id="hospitalAddress"
-                                            defaultValue="123 Healthcare Ave, Medical District, NY 10001"
+                                            defaultValue="Lô đất ký hiệu F2-CCTP3, KĐT mới Tây Mỗ - Đại Mỗ - Vinhomes Park, Đường Tây Mỗ, Phường Tây Mỗ, thành phố Hà Nội"
                                         />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="contactPhone">Contact Phone</Label>
-                                        <Input id="contactPhone" defaultValue="+1 (555) 123-CARE" />
+                                        <Input id="contactPhone" defaultValue="02432085678" />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="emergencyPhone">Emergency Phone</Label>
-                                        <Input id="emergencyPhone" defaultValue="+1 (555) 911-HELP" />
+                                        <Input id="emergencyPhone" defaultValue="02432085678 - 114" />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="website">Website</Label>
-                                        <Input id="website" defaultValue="https://healthcare-hospital.com" />
+                                        <Input id="website" defaultValue="https://www.vinmec.com" />
                                     </div>
                                 </div>
 
