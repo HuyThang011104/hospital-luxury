@@ -1,176 +1,197 @@
-import { useState } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogFooter,
+    DialogDescription,
+} from '../ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
-import { Plus, Edit, Trash2, Building2, Bed, AlertTriangle } from 'lucide-react';
+import { Plus, Edit, Trash2, Building2, Bed, AlertTriangle, Search } from 'lucide-react';
+import { supabase } from '@/utils/backend/client';
 
-const departmentsData = [
-    {
-        id: 1,
-        name: 'Cardiology',
-        description: 'Specialized care for heart and cardiovascular conditions',
-        location: 'Building A, Floor 3',
-        head: 'Dr. Emily Wilson',
-        staff: 12,
-        rooms: 8
-    },
-    {
-        id: 2,
-        name: 'Neurology',
-        description: 'Treatment of nervous system disorders',
-        location: 'Building B, Floor 2',
-        head: 'Dr. Michael Davis',
-        staff: 8,
-        rooms: 6
-    },
-    {
-        id: 3,
-        name: 'Pediatrics',
-        description: 'Medical care for infants, children, and adolescents',
-        location: 'Building C, Floor 1',
-        head: 'Dr. Sarah Miller',
-        staff: 15,
-        rooms: 10
-    },
-    {
-        id: 4,
-        name: 'Emergency',
-        description: 'Emergency medical care and trauma treatment',
-        location: 'Building A, Ground Floor',
-        head: 'Dr. Lisa Rodriguez',
-        staff: 20,
-        rooms: 12
-    }
-];
+// --- INTERFACES ---
+interface IDepartment {
+    id: number;
+    name: string;
+    description: string | null;
+    location: string | null;
+}
 
-const roomsData = [
-    {
-        id: 1,
-        name: 'Room 101',
-        type: 'Normal',
-        floor: '1st Floor',
-        department: 'Cardiology',
-        capacity: 2,
-        occupied: 1
-    },
-    {
-        id: 2,
-        name: 'ICU-01',
-        type: 'ICU',
-        floor: '2nd Floor',
-        department: 'Emergency',
-        capacity: 1,
-        occupied: 1
-    },
-    {
-        id: 3,
-        name: 'OR-01',
-        type: 'Operating',
-        floor: '3rd Floor',
-        department: 'Surgery',
-        capacity: 1,
-        occupied: 0
-    },
-    {
-        id: 4,
-        name: 'ER-01',
-        type: 'Emergency',
-        floor: 'Ground Floor',
-        department: 'Emergency',
-        capacity: 4,
-        occupied: 2
-    },
-    {
-        id: 5,
-        name: 'Room 205',
-        type: 'Normal',
-        floor: '2nd Floor',
-        department: 'Pediatrics',
-        capacity: 2,
-        occupied: 0
-    }
-];
+type RoomType = 'Normal' | 'ICU' | 'Operating' | 'Emergency';
+interface IRoom {
+    id: number;
+    name: string;
+    type: RoomType;
+    floor: string | null;
+    department_id: number;
+    capacity: number;
+    occupied: number;
+    department: Pick<IDepartment, 'id' | 'name'>; // Dữ liệu join
+}
 
-const bedsData = [
-    {
-        id: 1,
-        bedNumber: 'B001',
-        roomName: 'Room 101',
-        status: 'Occupied',
-        patient: 'John Smith',
-        department: 'Cardiology'
-    },
-    {
-        id: 2,
-        bedNumber: 'B002',
-        roomName: 'Room 101',
-        status: 'Available',
-        patient: null,
-        department: 'Cardiology'
-    },
-    {
-        id: 3,
-        bedNumber: 'ICU001',
-        roomName: 'ICU-01',
-        status: 'Occupied',
-        patient: 'Sarah Johnson',
-        department: 'Emergency'
-    },
-    {
-        id: 4,
-        bedNumber: 'B003',
-        roomName: 'Room 205',
-        status: 'Maintenance',
-        patient: null,
-        department: 'Pediatrics'
-    },
-    {
-        id: 5,
-        bedNumber: 'ER001',
-        roomName: 'ER-01',
-        status: 'Available',
-        patient: null,
-        department: 'Emergency'
-    }
-];
+type BedStatus = 'Occupied' | 'Available' | 'Maintenance';
+interface IBed {
+    id: number;
+    bed_number: string;
+    status: BedStatus;
+    room_id: number;
+    patient: { name: string } | null; // Giả sử join với bảng patient
+    room: { // Dữ liệu join
+        name: string;
+        department: { name: string };
+    };
+}
+
+// --- INITIAL FORM STATES ---
+const initialNewDepartmentState = { name: '', description: '', location: '' };
+const initialNewRoomState = { name: '', type: 'Normal' as RoomType, floor: '', department_id: 0, capacity: 1 };
+
 
 export function Departments() {
+    // --- STATE MANAGEMENT ---
+    const [loading, setLoading] = useState(true);
+    const [departments, setDepartments] = useState<IDepartment[]>([]);
+    const [rooms, setRooms] = useState<IRoom[]>([]);
+    const [beds, setBeds] = useState<IBed[]>([]);
+
     const [isAddDeptDialogOpen, setIsAddDeptDialogOpen] = useState(false);
     const [isAddRoomDialogOpen, setIsAddRoomDialogOpen] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-    const getRoomTypeColor = (type: string) => {
-        switch (type) {
-            case 'ICU': return 'destructive';
-            case 'Emergency': return 'secondary';
-            case 'Operating': return 'default';
-            default: return 'outline';
+    const [newDepartment, setNewDepartment] = useState(initialNewDepartmentState);
+    const [newRoom, setNewRoom] = useState(initialNewRoomState);
+
+    const [itemToDelete, setItemToDelete] = useState<{ type: 'department' | 'room' | 'bed'; id: number } | null>(null);
+
+    const [roomSearchTerm, setRoomSearchTerm] = useState('');
+    const [bedSearchTerm, setBedSearchTerm] = useState('');
+
+
+    // --- FETCH DATA ---
+    useEffect(() => {
+        const fetchAllData = async () => {
+            setLoading(true);
+            try {
+                await Promise.all([fetchDepartments(), fetchRooms(), fetchBeds()]);
+            } catch (error) {
+                console.error("Error fetching initial data:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAllData();
+    }, []);
+
+    const fetchDepartments = async () => {
+        const { data, error } = await supabase.from('department').select('*');
+        if (error) throw error;
+        setDepartments(data || []);
+    };
+
+    const fetchRooms = async () => {
+        const { data, error } = await supabase.from('room').select('*, department (id, name)');
+        if (error) throw error;
+        setRooms(data as any || []);
+    };
+
+    const fetchBeds = async () => {
+        const { data, error } = await supabase.from('bed').select('*, room ( name, department ( name ) )');
+        if (error) throw error;
+        setBeds(data as any || []);
+    };
+
+
+    // --- CRUD HANDLERS ---
+    const handleAddDepartment = async () => {
+        if (!newDepartment.name) return alert('Department Name is required.');
+        const { data, error } = await supabase.from('department').insert([newDepartment]).select().single();
+        if (error) alert(error.message);
+        else if (data) {
+            setDepartments(prev => [...prev, data]);
+            setNewDepartment(initialNewDepartmentState);
+            setIsAddDeptDialogOpen(false);
         }
     };
 
-    const getBedStatusColor = (status: string) => {
-        switch (status) {
-            case 'Occupied': return 'destructive';
-            case 'Available': return 'default';
-            case 'Maintenance': return 'secondary';
-            default: return 'outline';
+    const handleAddRoom = async () => {
+        if (!newRoom.name || !newRoom.department_id) return alert('Room name and department are required.');
+        const { data, error } = await supabase.from('room').insert([{ ...newRoom, occupied: 0 }]).select('*, department (id, name)').single();
+        if (error) alert(error.message);
+        else if (data) {
+            setRooms(prev => [...prev, data as any]);
+            setNewRoom(initialNewRoomState);
+            setIsAddRoomDialogOpen(false);
         }
     };
+
+    const confirmDelete = async () => {
+        if (!itemToDelete) return;
+        const { type, id } = itemToDelete;
+        const { error } = await supabase.from(type).delete().eq('id', id);
+        if (error) alert(error.message);
+        else {
+            if (type === 'department') setDepartments(prev => prev.filter(item => item.id !== id));
+            else if (type === 'room') setRooms(prev => prev.filter(item => item.id !== id));
+        }
+        setIsDeleteDialogOpen(false);
+        setItemToDelete(null);
+    };
+
+    // --- FORM INPUT HANDLERS ---
+    const handleDepartmentInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setNewDepartment(prev => ({ ...prev, [e.target.id]: e.target.value }));
+    };
+
+    const handleRoomInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { id, value } = e.target;
+        setNewRoom(prev => ({ ...prev, [id]: id === 'capacity' ? parseInt(value, 10) || 0 : value }));
+    };
+    const handleRoomSelectChange = (id: 'type' | 'department_id' | 'floor', value: string | number) => {
+        setNewRoom(prev => ({ ...prev, [id]: value }));
+    };
+
+    // --- FILTERED DATA ---
+    const filteredRooms = useMemo(() =>
+        rooms.filter(room =>
+            room.name.toLowerCase().includes(roomSearchTerm.toLowerCase()) ||
+            room.department.name.toLowerCase().includes(roomSearchTerm.toLowerCase())
+        ), [rooms, roomSearchTerm]);
+
+    const filteredBeds = useMemo(() =>
+        beds.filter(bed =>
+            bed.bed_number.toLowerCase().includes(bedSearchTerm.toLowerCase()) ||
+            (bed.patient?.name && bed.patient.name.toLowerCase().includes(bedSearchTerm.toLowerCase())) ||
+            bed.room.name.toLowerCase().includes(bedSearchTerm.toLowerCase())
+        ), [beds, bedSearchTerm]);
+
+    // --- HELPERS ---
+    const getBedStatusColor = (status: BedStatus) => {
+        // ... (function as before)
+    };
+
+    // --- RENDER ---
+    if (loading) {
+        return <div className="flex justify-center items-center h-64">Loading hospital data...</div>;
+    }
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1>Departments & Rooms</h1>
-                    <p className="text-muted-foreground">
-                        Manage hospital departments, rooms, and bed allocation
-                    </p>
+                    <h1 className="text-2xl font-bold">Departments & Rooms</h1>
+                    <p className="text-muted-foreground">Manage hospital departments, rooms, and bed allocation</p>
                 </div>
             </div>
 
@@ -181,101 +202,55 @@ export function Departments() {
                     <TabsTrigger value="beds">Beds</TabsTrigger>
                 </TabsList>
 
+                {/* DEPARTMENTS TAB */}
                 <TabsContent value="departments">
                     <Card>
                         <CardHeader>
                             <div className="flex justify-between items-center">
-                                <CardTitle className="flex items-center">
-                                    <Building2 className="mr-2 h-5 w-5" />
-                                    Departments
-                                </CardTitle>
+                                <CardTitle className="flex items-center"><Building2 className="mr-2 h-5 w-5" /> Departments</CardTitle>
                                 <Dialog open={isAddDeptDialogOpen} onOpenChange={setIsAddDeptDialogOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button>
-                                            <Plus className="mr-2 h-4 w-4" />
-                                            Add Department
-                                        </Button>
-                                    </DialogTrigger>
+                                    <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" /> Add Department</Button></DialogTrigger>
                                     <DialogContent>
-                                        <DialogHeader>
-                                            <DialogTitle>Add New Department</DialogTitle>
-                                        </DialogHeader>
+                                        <DialogHeader><DialogTitle>Add New Department</DialogTitle></DialogHeader>
                                         <div className="space-y-4 py-4">
                                             <div className="space-y-2">
-                                                <Label htmlFor="deptName">Department Name</Label>
-                                                <Input id="deptName" placeholder="Enter department name" />
+                                                <Label htmlFor="name">Department Name</Label>
+                                                <Input id="name" value={newDepartment.name} onChange={handleDepartmentInputChange} placeholder="Enter department name" />
                                             </div>
                                             <div className="space-y-2">
-                                                <Label htmlFor="deptDescription">Description</Label>
-                                                <Textarea id="deptDescription" placeholder="Enter department description" />
+                                                <Label htmlFor="description">Description</Label>
+                                                <Textarea id="description" value={newDepartment.description} onChange={handleDepartmentInputChange} placeholder="Enter department description" />
                                             </div>
                                             <div className="space-y-2">
-                                                <Label htmlFor="deptLocation">Location</Label>
-                                                <Input id="deptLocation" placeholder="Building, Floor" />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="deptHead">Department Head</Label>
-                                                <Select>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select department head" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="dr-wilson">Dr. Emily Wilson</SelectItem>
-                                                        <SelectItem value="dr-davis">Dr. Michael Davis</SelectItem>
-                                                        <SelectItem value="dr-miller">Dr. Sarah Miller</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
+                                                <Label htmlFor="location">Location</Label>
+                                                <Input id="location" value={newDepartment.location} onChange={handleDepartmentInputChange} placeholder="Building, Floor" />
                                             </div>
                                         </div>
-                                        <div className="flex justify-end space-x-2">
-                                            <Button variant="outline" onClick={() => setIsAddDeptDialogOpen(false)}>
-                                                Cancel
-                                            </Button>
-                                            <Button onClick={() => setIsAddDeptDialogOpen(false)}>
-                                                Add Department
-                                            </Button>
-                                        </div>
+                                        <DialogFooter>
+                                            <Button variant="outline" onClick={() => setIsAddDeptDialogOpen(false)}>Cancel</Button>
+                                            <Button onClick={handleAddDepartment}>Add Department</Button>
+                                        </DialogFooter>
                                     </DialogContent>
                                 </Dialog>
                             </div>
                         </CardHeader>
                         <CardContent>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {departmentsData.map((dept) => (
+                                {departments.map((dept) => (
                                     <Card key={dept.id}>
                                         <CardHeader>
                                             <div className="flex justify-between items-start">
                                                 <div>
                                                     <CardTitle className="text-lg">{dept.name}</CardTitle>
-                                                    <p className="text-sm text-muted-foreground">{dept.location}</p>
+                                                    <p className="text-sm text-muted-foreground">{dept.location || 'N/A'}</p>
                                                 </div>
                                                 <div className="flex space-x-1">
-                                                    <Button variant="ghost" size="sm">
-                                                        <Edit className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="sm">
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8"><Edit className="h-4 w-4" /></Button>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => openDeleteDialog('department', dept.id)}><Trash2 className="h-4 w-4" /></Button>
                                                 </div>
                                             </div>
                                         </CardHeader>
-                                        <CardContent>
-                                            <p className="text-sm mb-4">{dept.description}</p>
-                                            <div className="space-y-2">
-                                                <div className="flex justify-between">
-                                                    <span className="text-sm text-muted-foreground">Department Head:</span>
-                                                    <span className="text-sm">{dept.head}</span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span className="text-sm text-muted-foreground">Staff:</span>
-                                                    <span className="text-sm">{dept.staff} members</span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span className="text-sm text-muted-foreground">Rooms:</span>
-                                                    <span className="text-sm">{dept.rooms} rooms</span>
-                                                </div>
-                                            </div>
-                                        </CardContent>
+                                        <CardContent><p className="text-sm">{dept.description || 'No description.'}</p></CardContent>
                                     </Card>
                                 ))}
                             </div>
@@ -283,223 +258,112 @@ export function Departments() {
                     </Card>
                 </TabsContent>
 
+                {/* ROOMS TAB */}
                 <TabsContent value="rooms">
                     <Card>
                         <CardHeader>
                             <div className="flex justify-between items-center">
                                 <CardTitle>Rooms</CardTitle>
-                                <Dialog open={isAddRoomDialogOpen} onOpenChange={setIsAddRoomDialogOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button>
-                                            <Plus className="mr-2 h-4 w-4" />
-                                            Add Room
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogHeader>
-                                            <DialogTitle>Add New Room</DialogTitle>
-                                        </DialogHeader>
-                                        <div className="space-y-4 py-4">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="roomName">Room Name</Label>
-                                                <Input id="roomName" placeholder="e.g., Room 101, ICU-01" />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="roomType">Room Type</Label>
-                                                <Select>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select room type" />
-                                                    </SelectTrigger>
+                                <div className="flex items-center space-x-2">
+                                    <div className="relative w-64">
+                                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <Input placeholder="Search room or department..." value={roomSearchTerm} onChange={e => setRoomSearchTerm(e.target.value)} className="pl-8" />
+                                    </div>
+                                    <Dialog open={isAddRoomDialogOpen} onOpenChange={setIsAddRoomDialogOpen}>
+                                        <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" /> Add Room</Button></DialogTrigger>
+                                        <DialogContent>
+                                            <DialogHeader><DialogTitle>Add New Room</DialogTitle></DialogHeader>
+                                            <div className="space-y-4 py-4">
+                                                <Input id="name" value={newRoom.name} onChange={handleRoomInputChange} placeholder="e.g., Room 101, ICU-01" />
+                                                <Select value={String(newRoom.department_id)} onValueChange={(value) => handleRoomSelectChange('department_id', Number(value))}>
+                                                    <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="normal">Normal</SelectItem>
-                                                        <SelectItem value="icu">ICU</SelectItem>
-                                                        <SelectItem value="emergency">Emergency</SelectItem>
-                                                        <SelectItem value="operating">Operating</SelectItem>
+                                                        {departments.map(dept => (<SelectItem key={dept.id} value={String(dept.id)}>{dept.name}</SelectItem>))}
                                                     </SelectContent>
                                                 </Select>
+                                                <Input id="capacity" type="number" min="1" value={newRoom.capacity} onChange={handleRoomInputChange} placeholder="Number of beds" />
                                             </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="roomFloor">Floor</Label>
-                                                <Select>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select floor" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="ground">Ground Floor</SelectItem>
-                                                        <SelectItem value="1st">1st Floor</SelectItem>
-                                                        <SelectItem value="2nd">2nd Floor</SelectItem>
-                                                        <SelectItem value="3rd">3rd Floor</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="roomDept">Department</Label>
-                                                <Select>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select department" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {departmentsData.map(dept => (
-                                                            <SelectItem key={dept.id} value={dept.name.toLowerCase()}>
-                                                                {dept.name}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="roomCapacity">Capacity</Label>
-                                                <Input id="roomCapacity" type="number" placeholder="Number of beds" />
-                                            </div>
-                                        </div>
-                                        <div className="flex justify-end space-x-2">
-                                            <Button variant="outline" onClick={() => setIsAddRoomDialogOpen(false)}>
-                                                Cancel
-                                            </Button>
-                                            <Button onClick={() => setIsAddRoomDialogOpen(false)}>
-                                                Add Room
-                                            </Button>
-                                        </div>
-                                    </DialogContent>
-                                </Dialog>
+                                            <DialogFooter>
+                                                <Button variant="outline" onClick={() => setIsAddRoomDialogOpen(false)}>Cancel</Button>
+                                                <Button onClick={handleAddRoom}>Add Room</Button>
+                                            </DialogFooter>
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
                             </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Room Name</TableHead>
-                                            <TableHead>Type</TableHead>
-                                            <TableHead>Floor</TableHead>
-                                            <TableHead>Department</TableHead>
-                                            <TableHead>Capacity</TableHead>
-                                            <TableHead>Occupied</TableHead>
-                                            <TableHead>Actions</TableHead>
+                            <Table>
+                                <TableHeader><TableRow><TableHead>Room</TableHead><TableHead>Type</TableHead><TableHead>Department</TableHead><TableHead>Capacity</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
+                                <TableBody>
+                                    {filteredRooms.map((room) => (
+                                        <TableRow key={room.id}>
+                                            <TableCell className="font-medium">{room.name}</TableCell>
+                                            <TableCell><Badge>{room.type}</Badge></TableCell>
+                                            {/* Hiển thị tên khoa từ dữ liệu join */}
+                                            <TableCell>{room.department?.name || 'N/A'}</TableCell>
+                                            <TableCell>{room.occupied}/{room.capacity}</TableCell>
+                                            <TableCell>
+                                                <div className="flex space-x-1">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8"><Edit className="h-4 w-4" /></Button>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => openDeleteDialog('room', room.id)}><Trash2 className="h-4 w-4" /></Button>
+                                                </div>
+                                            </TableCell>
                                         </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {roomsData.map((room) => (
-                                            <TableRow key={room.id}>
-                                                <TableCell>{room.name}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant={getRoomTypeColor(room.type)}>
-                                                        {room.type}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>{room.floor}</TableCell>
-                                                <TableCell>{room.department}</TableCell>
-                                                <TableCell>{room.capacity}</TableCell>
-                                                <TableCell>
-                                                    <span className={room.occupied === room.capacity ? 'text-red-600' : 'text-green-600'}>
-                                                        {room.occupied}/{room.capacity}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex space-x-1">
-                                                        <Button variant="ghost" size="sm">
-                                                            <Edit className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button variant="ghost" size="sm">
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                                    ))}
+                                </TableBody>
+                            </Table>
                         </CardContent>
                     </Card>
                 </TabsContent>
 
+                {/* BEDS TAB */}
                 <TabsContent value="beds">
                     <Card>
                         <CardHeader>
-                            <CardTitle className="flex items-center">
-                                <Bed className="mr-2 h-5 w-5" />
-                                Bed Management
-                            </CardTitle>
+                            <div className="flex justify-between items-center">
+                                <CardTitle className="flex items-center"><Bed className="mr-2 h-5 w-5" /> Bed Management</CardTitle>
+                                <div className="relative w-64">
+                                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input placeholder="Search bed, patient..." value={bedSearchTerm} onChange={e => setBedSearchTerm(e.target.value)} className="pl-8" />
+                                </div>
+                            </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                                <Card>
-                                    <CardContent className="p-4">
-                                        <div className="flex items-center space-x-2">
-                                            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                                            <span className="text-sm">Available: {bedsData.filter(b => b.status === 'Available').length}</span>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                    <CardContent className="p-4">
-                                        <div className="flex items-center space-x-2">
-                                            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                                            <span className="text-sm">Occupied: {bedsData.filter(b => b.status === 'Occupied').length}</span>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                    <CardContent className="p-4">
-                                        <div className="flex items-center space-x-2">
-                                            <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                                            <span className="text-sm">Maintenance: {bedsData.filter(b => b.status === 'Maintenance').length}</span>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </div>
-
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Bed Number</TableHead>
-                                            <TableHead>Room</TableHead>
-                                            <TableHead>Department</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Patient</TableHead>
-                                            <TableHead>Actions</TableHead>
+                            <Table>
+                                <TableHeader><TableRow><TableHead>Bed</TableHead><TableHead>Room</TableHead><TableHead>Department</TableHead><TableHead>Status</TableHead><TableHead>Patient</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
+                                <TableBody>
+                                    {filteredBeds.map((bed) => (
+                                        <TableRow key={bed.id}>
+                                            <TableCell className="font-medium">{bed.bed_number}</TableCell>
+                                            {/* Hiển thị tên phòng và khoa từ dữ liệu join */}
+                                            <TableCell>{bed.room?.name || 'N/A'}</TableCell>
+                                            <TableCell>{bed.room?.department?.name || 'N/A'}</TableCell>
+                                            <TableCell><Badge>{bed.status}</Badge></TableCell>
+                                            <TableCell>{bed.patient?.name || '---'}</TableCell>
+                                            <TableCell><Button variant="ghost" size="icon" className="h-8 w-8"><Edit className="h-4 w-4" /></Button></TableCell>
                                         </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {bedsData.map((bed) => (
-                                            <TableRow key={bed.id}>
-                                                <TableCell className="font-medium">{bed.bedNumber}</TableCell>
-                                                <TableCell>{bed.roomName}</TableCell>
-                                                <TableCell>{bed.department}</TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center space-x-2">
-                                                        <Badge variant={getBedStatusColor(bed.status)}>
-                                                            {bed.status}
-                                                        </Badge>
-                                                        {bed.status === 'Maintenance' && (
-                                                            <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>{bed.patient || '-'}</TableCell>
-                                                <TableCell>
-                                                    <div className="flex space-x-1">
-                                                        <Button variant="ghost" size="sm">
-                                                            <Edit className="h-4 w-4" />
-                                                        </Button>
-                                                        {bed.status === 'Maintenance' && (
-                                                            <Button variant="ghost" size="sm" className="text-green-600">
-                                                                Fix
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                                    ))}
+                                </TableBody>
+                            </Table>
                         </CardContent>
                     </Card>
                 </TabsContent>
             </Tabs>
+
+            {/* DELETE CONFIRMATION DIALOG */}
+            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Are you sure?</DialogTitle>
+                        <DialogDescription>This action cannot be undone. This will permanently delete the item.</DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
+                        <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
