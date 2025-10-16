@@ -1,121 +1,189 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { Button } from '../ui/button';
 import { Users, UserCheck, Bed, Calendar, DollarSign, Database } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line, ResponsiveContainer } from 'recharts';
-import { serverRequest } from '@/utils/backend/client';
+import { supabase } from '@/utils/backend/client';
+import type { IPatient } from '@/interfaces/patient';
+import type { IDoctor } from '@/interfaces/doctor';
+import type { IAppointment } from '@/interfaces/appointment';
+import type { IDepartment } from '@/interfaces/department';
+import type { IBed } from '@/interfaces/bed';
+import type { IMedicalRecord } from '@/interfaces/medical_record';
+import type { Gender, AppointmentStatus, BedStatus } from '@/types';
 
-const summaryData = [
-    {
-        title: 'Total Patients',
-        value: '2,847',
-        change: '+12%',
-        trend: 'up',
-        icon: Users,
-        color: 'text-blue-600'
-    },
-    {
-        title: 'Active Doctors',
-        value: '124',
-        change: '+3%',
-        trend: 'up',
-        icon: UserCheck,
-        color: 'text-green-600'
-    },
-    {
-        title: 'Available Beds',
-        value: '89',
-        change: '-5%',
-        trend: 'down',
-        icon: Bed,
-        color: 'text-orange-600'
-    },
-    {
-        title: "Today's Appointments",
-        value: '156',
-        change: '+8%',
-        trend: 'up',
-        icon: Calendar,
-        color: 'text-purple-600'
-    },
-    {
-        title: 'Pending Payments',
-        value: '$45,230',
-        change: '-2%',
-        trend: 'down',
-        icon: DollarSign,
-        color: 'text-red-600'
-    }
-];
+// Interface cho dashboard statistics
+interface DashboardStats {
+    totalPatients: number;
+    activeDoctors: number;
+    todayAppointments: number;
+    totalRecords: number;
+    availableBeds: number;
+    pendingPayments: number;
+}
 
-const genderData = [
-    { name: 'Male', value: 1420, color: '#3b82f6' },
-    { name: 'Female', value: 1427, color: '#ec4899' }
-];
+// Interface cho appointment với thông tin liên quan
+interface IAppointmentWithDetails extends IAppointment {
+    patient: { full_name: string } | null;
+    doctor: { full_name: string } | null;
+    department: { name: string } | null;
+}
 
-const departmentData = [
-    { department: 'Cardiology', appointments: 45 },
-    { department: 'Neurology', appointments: 32 },
-    { department: 'Orthopedics', appointments: 28 },
-    { department: 'Pediatrics', appointments: 51 },
-    { department: 'Emergency', appointments: 67 },
-    { department: 'Surgery', appointments: 23 }
-];
+// Interface cho bed với thông tin phòng
+interface IBedWithRoom extends IBed {
+    room: {
+        department: { name: string } | null;
+    } | null;
+}
 
-const registrationData = [
-    { month: 'Jan', patients: 180 },
-    { month: 'Feb', patients: 205 },
-    { month: 'Mar', patients: 190 },
-    { month: 'Apr', patients: 240 },
-    { month: 'May', patients: 260 },
-    { month: 'Jun', patients: 285 }
-];
+// Interface cho dữ liệu biểu đồ
+interface GenderData {
+    name: string;
+    value: number;
+    color: string;
+}
+
+interface DepartmentData {
+    department: string;
+    appointments: number;
+}
+
+interface RegistrationData {
+    month: string;
+    patients: number;
+}
 
 export function Dashboard() {
-    const [stats, setStats] = useState(null);
+    const [stats, setStats] = useState<DashboardStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [seeding, setSeeding] = useState(false);
+    const [genderData, setGenderData] = useState<GenderData[]>([
+        { name: 'Nam', value: 0, color: '#3b82f6' },
+        { name: 'Nữ', value: 0, color: '#ec4899' }
+    ]);
+    const [departmentData, setDepartmentData] = useState<DepartmentData[]>([
+        { department: 'Tim mạch', appointments: 0 },
+        { department: 'Thần kinh', appointments: 0 },
+        { department: 'Cơ xương khớp', appointments: 0 },
+        { department: 'Nhi', appointments: 0 },
+        { department: 'Cấp cứu', appointments: 0 },
+        { department: 'Phẫu thuật', appointments: 0 }
+    ]);
+    const [registrationData, setRegistrationData] = useState<RegistrationData[]>([
+        { month: 'Tháng 1', patients: 0 },
+        { month: 'Tháng 2', patients: 0 },
+        { month: 'Tháng 3', patients: 0 },
+        { month: 'Tháng 4', patients: 0 },
+        { month: 'Tháng 5', patients: 0 },
+        { month: 'Tháng 6', patients: 0 }
+    ]);
+    const [recentAppointments, setRecentAppointments] = useState<IAppointmentWithDetails[]>([]);
 
     useEffect(() => {
-        fetchDashboardStats();
+        fetchDashboardData();
     }, []);
 
-    const fetchDashboardStats = async () => {
+    const fetchDashboardData = async () => {
+        setLoading(true);
         try {
-            const response = await serverRequest('/dashboard-stats');
-            setStats(response.stats);
+            // Fetch all data in parallel
+            const [patientsRes, doctorsRes, appointmentsRes, departmentsRes, bedsRes, medicalRecordsRes] = await Promise.all([
+                supabase.from('patient').select('*'),
+                supabase.from('doctor').select('*').eq('status', 'Active'),
+                supabase.from('appointment').select(`*, patient(full_name), doctor(full_name), department(name)`),
+                supabase.from('department').select('*'),
+                supabase.from('bed').select('*, room(department(name))'),
+                supabase.from('medical_record').select('*')
+            ]);
+
+            const patients: IPatient[] = patientsRes.data || [];
+            const doctors: IDoctor[] = doctorsRes.data || [];
+            const appointments: IAppointmentWithDetails[] = appointmentsRes.data || [];
+            const departments: IDepartment[] = departmentsRes.data || [];
+            const beds: IBedWithRoom[] = bedsRes.data || [];
+            const medicalRecords: IMedicalRecord[] = medicalRecordsRes.data || [];
+
+            // Department appointment statistics - merge with real departments
+            const deptStats: Record<string, number> = {};
+            if (departments) {
+                departments.forEach(dept => {
+                    deptStats[dept.name] = 0;
+                });
+            }
+            appointments.forEach(apt => {
+                const deptName = apt.department?.name || 'Other';
+                deptStats[deptName] = (deptStats[deptName] || 0) + 1;
+            });
+
+            // Calculate statistics
+            const today = new Date().toISOString().split('T')[0];
+            const todayAppointments = appointments.filter(apt => apt.appointment_date?.startsWith(today));
+            const availableBeds = beds.filter(bed => bed.status === 'Available' as BedStatus).length;
+
+            // Recent appointments (last 5)
+            const recent = appointments
+                .sort((a, b) => new Date(b.appointment_date || 0).getTime() - new Date(a.appointment_date || 0).getTime())
+                .slice(0, 5);
+
+            // Gender statistics
+            const maleCount = patients.filter(p => p.gender === 'Male' as Gender).length;
+            const femaleCount = patients.filter(p => p.gender === 'Female' as Gender).length;
+
+
+
+            // Monthly registration data (last 6 months)
+            const months = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6'];
+            const currentMonth = new Date().getMonth();
+            const monthlyData = months.map((month, index) => {
+                const monthIndex = (currentMonth - 5 + index + 12) % 12;
+                const yearOffset = currentMonth - 5 + index < 0 ? -1 : 0;
+                const targetDate = new Date(new Date().getFullYear() + yearOffset, monthIndex, 1);
+                const monthPatients = patients.filter(p => {
+                    const joinDate = new Date(p.join_date);
+                    return joinDate.getMonth() === monthIndex &&
+                        joinDate.getFullYear() === targetDate.getFullYear();
+                }).length;
+                return { month, patients: monthPatients };
+            });
+
+            // Set all states
+            setStats({
+                totalPatients: patients.length,
+                activeDoctors: doctors.length,
+                todayAppointments: todayAppointments.length,
+                totalRecords: medicalRecords.length,
+                availableBeds: availableBeds,
+                pendingPayments: 45230, // This would need payment table integration
+            } as DashboardStats);
+
+            setGenderData([
+                { name: 'Nam', value: maleCount, color: '#3b82f6' },
+                { name: 'Nữ', value: femaleCount, color: '#ec4899' }
+            ]);
+
+            setDepartmentData(Object.entries(deptStats).map(([dept, count]) => ({ department: dept, appointments: count })));
+            setRegistrationData(monthlyData);
+            setRecentAppointments(recent);
+
         } catch (error) {
-            console.error('Error fetching dashboard stats:', error);
-            // Set default stats if server request fails
+            console.error('Error fetching dashboard data:', error);
+            // Set default stats on error
             setStats({
                 totalPatients: 0,
                 activeDoctors: 0,
                 todayAppointments: 0,
                 totalRecords: 0,
-                availableBeds: 89,
-                pendingPayments: 45230,
-            });
+                availableBeds: 0,
+                pendingPayments: 0,
+            } as DashboardStats);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSeedDatabase = async () => {
-        setSeeding(true);
-        try {
-            await seedDatabase();
-            await fetchDashboardStats(); // Refresh stats after seeding
-        } catch (error) {
-            console.error('Error seeding database:', error);
-        } finally {
-            setSeeding(false);
-        }
-    };
-
     const summaryData = stats ? [
         {
-            title: 'Total Patients',
+            title: 'Tổng số bệnh nhân',
             value: stats.totalPatients.toString(),
             change: '+12%',
             trend: 'up',
@@ -123,7 +191,7 @@ export function Dashboard() {
             color: 'text-blue-600'
         },
         {
-            title: 'Active Doctors',
+            title: 'Bác sĩ đang làm việc',
             value: stats.activeDoctors.toString(),
             change: '+3%',
             trend: 'up',
@@ -131,7 +199,7 @@ export function Dashboard() {
             color: 'text-green-600'
         },
         {
-            title: 'Available Beds',
+            title: 'Giường trống',
             value: stats.availableBeds.toString(),
             change: '-5%',
             trend: 'down',
@@ -139,7 +207,7 @@ export function Dashboard() {
             color: 'text-orange-600'
         },
         {
-            title: "Today's Appointments",
+            title: 'Lịch hẹn hôm nay',
             value: stats.todayAppointments.toString(),
             change: '+8%',
             trend: 'up',
@@ -147,8 +215,8 @@ export function Dashboard() {
             color: 'text-purple-600'
         },
         {
-            title: 'Pending Payments',
-            value: `${stats.pendingPayments.toLocaleString()}`,
+            title: 'Thanh toán chờ xử lý',
+            value: `${stats.pendingPayments.toLocaleString()}đ`,
             change: '-2%',
             trend: 'down',
             icon: DollarSign,
@@ -160,9 +228,9 @@ export function Dashboard() {
         return (
             <div className="space-y-6">
                 <div>
-                    <h1>Dashboard</h1>
+                    <h1>Tổng quan</h1>
                     <p className="text-muted-foreground">
-                        Loading hospital overview and key metrics...
+                        Đang tải tổng quan bệnh viện và các chỉ số chính...
                     </p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -187,19 +255,11 @@ export function Dashboard() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1>Dashboard</h1>
+                    <h1>Tổng quan</h1>
                     <p className="text-muted-foreground">
-                        Hospital overview and key metrics
+                        Tổng quan bệnh viện và các chỉ số chính
                     </p>
                 </div>
-                <Button
-                    onClick={handleSeedDatabase}
-                    disabled={seeding}
-                    variant="outline"
-                >
-                    <Database className="mr-2 h-4 w-4" />
-                    {seeding ? 'Seeding...' : 'Seed Sample Data'}
-                </Button>
             </div>
 
             {/* Summary Cards */}
@@ -220,7 +280,7 @@ export function Dashboard() {
                                     variant={item.trend === 'up' ? 'default' : 'destructive'}
                                     className="text-xs mt-1"
                                 >
-                                    {item.change} from last month
+                                    {item.change} so với tháng trước
                                 </Badge>
                             </CardContent>
                         </Card>
@@ -233,7 +293,7 @@ export function Dashboard() {
                 {/* Patients by Gender */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Patients by Gender</CardTitle>
+                        <CardTitle>Bệnh nhân theo giới tính</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ResponsiveContainer width="100%" height={200}>
@@ -259,7 +319,7 @@ export function Dashboard() {
                 {/* Appointments by Department */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Appointments by Department</CardTitle>
+                        <CardTitle>Lịch hẹn theo khoa</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ResponsiveContainer width="100%" height={200}>
@@ -277,7 +337,7 @@ export function Dashboard() {
                 {/* Patient Registrations */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Patient Registrations</CardTitle>
+                        <CardTitle>Đăng ký bệnh nhân</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ResponsiveContainer width="100%" height={200}>
@@ -297,50 +357,55 @@ export function Dashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Recent Appointments</CardTitle>
+                        <CardTitle>Lịch hẹn gần đây</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
-                            {[
-                                { patient: 'John Smith', doctor: 'Dr. Wilson', time: '10:00 AM', status: 'confirmed' },
-                                { patient: 'Sarah Johnson', doctor: 'Dr. Davis', time: '11:30 AM', status: 'pending' },
-                                { patient: 'Mike Brown', doctor: 'Dr. Miller', time: '2:00 PM', status: 'completed' },
-                                { patient: 'Lisa Williams', doctor: 'Dr. Garcia', time: '3:30 PM', status: 'confirmed' }
-                            ].map((appointment, index) => (
-                                <div key={index} className="flex items-center justify-between">
-                                    <div>
-                                        <p className="font-medium">{appointment.patient}</p>
-                                        <p className="text-sm text-muted-foreground">{appointment.doctor} • {appointment.time}</p>
+                            {recentAppointments.length > 0 ? (
+                                recentAppointments.map((appointment) => (
+                                    <div key={appointment.id} className="flex items-center justify-between">
+                                        <div>
+                                            <p className="font-medium">{appointment.patient?.full_name || 'Bệnh nhân không xác định'}</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                BS. {appointment.doctor?.full_name || 'Bác sĩ không xác định'} •
+                                                {appointment.appointment_date ? new Date(appointment.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                                            </p>
+                                        </div>
+                                        <Badge
+                                            variant={
+                                                appointment.status === 'Completed' as AppointmentStatus ? 'default' :
+                                                    appointment.status === 'Pending' as AppointmentStatus ? 'secondary' : 'destructive'
+                                            }
+                                        >
+                                            {appointment.status === 'Completed' ? 'Hoàn thành' :
+                                              appointment.status === 'Pending' ? 'Chờ xử lý' :
+                                              appointment.status === 'Cancelled' ? 'Đã hủy' :
+                                              'Không xác định'}
+                                        </Badge>
                                     </div>
-                                    <Badge
-                                        variant={
-                                            appointment.status === 'completed' ? 'default' :
-                                                appointment.status === 'confirmed' ? 'secondary' : 'outline'
-                                        }
-                                    >
-                                        {appointment.status}
-                                    </Badge>
-                                </div>
-                            ))}
+                                ))
+                            ) : (
+                                <p className="text-center text-muted-foreground py-4">Không có lịch hẹn gần đây</p>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Critical Alerts</CardTitle>
+                        <CardTitle>Cảnh báo quan trọng</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
                             {[
-                                { message: 'ICU Bed #12 requires immediate attention', priority: 'high', time: '5 min ago' },
-                                { message: 'Medicine inventory running low: Amoxicillin', priority: 'medium', time: '15 min ago' },
-                                { message: 'Equipment maintenance due: MRI Scanner #2', priority: 'medium', time: '1 hour ago' },
-                                { message: 'New patient admission in Emergency', priority: 'low', time: '2 hours ago' }
+                                { message: 'Giường ICU #12 cần chú ý ngay lập tức', priority: 'high', time: '5 phút trước' },
+                                { message: 'Tồn kho thuốc sắp hết: Amoxicillin', priority: 'medium', time: '15 phút trước' },
+                                { message: 'Bảo trì thiết bị đến hạn: Máy MRI #2', priority: 'medium', time: '1 giờ trước' },
+                                { message: 'Bệnh nhân mới nhập viện tại Cấp cứu', priority: 'low', time: '2 giờ trước' }
                             ].map((alert, index) => (
                                 <div key={index} className="flex items-start space-x-3">
                                     <div className={`w-2 h-2 rounded-full mt-2 ${alert.priority === 'high' ? 'bg-red-500' :
-                                            alert.priority === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
+                                        alert.priority === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
                                         }`} />
                                     <div className="flex-1">
                                         <p className="text-sm">{alert.message}</p>
