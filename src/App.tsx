@@ -10,7 +10,6 @@ import { MedicalRecords } from './components/pages/medical-records';
 import { Pharmacy } from './components/pages/pharmacy';
 import { Payments } from './components/pages/payments';
 import { Schedules } from './components/pages/schedules';
-import { Reports } from './components/pages/reports';
 import { HospitalLayout } from './components/pages/hospital-layout';
 
 export default function App() {
@@ -36,8 +35,8 @@ export default function App() {
         return <Payments />;
       case 'schedules':
         return <Schedules />;
-      case 'reports':
-        return <Reports />;
+      // case 'reports':
+      //   return <Reports />;
       case 'settings':
         return <SettingsPage />;
       default:

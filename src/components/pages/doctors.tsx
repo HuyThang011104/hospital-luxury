@@ -127,7 +127,7 @@ export function Doctors() {
 
         // Kiểm tra validation cơ bản
         if (!newDoctor.full_name || !newDoctor.username || !newDoctor.specialty || !newDoctor.email) {
-            setAddDoctorError("Please fill in all required fields (Full Name, Username, Specialty, Email).");
+            setAddDoctorError("Vui lòng điền tất cả các trường bắt buộc (Họ tên, Tên đăng nhập, Chuyên khoa, Email).");
             return;
         }
 
@@ -176,7 +176,7 @@ export function Doctors() {
 
         } catch (error: any) {
             console.error('Error adding doctor:', error);
-            setAddDoctorError(`Failed to add doctor: ${error.message || 'Unknown error'}`);
+            setAddDoctorError(`Thêm bác sĩ thất bại: ${error.message || 'Lỗi không xác định'}`);
         }
     };
 
@@ -227,16 +227,16 @@ export function Doctors() {
     // --- RENDER ---
 
     if (loading) {
-        return <div className="text-center py-10">Loading doctors and certificates...</div>;
+        return <div className="text-center py-10">Đang tải bác sĩ và chứng chỉ...</div>;
     }
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold">Doctor Management</h1>
+                    <h1 className="text-3xl font-bold">Quản lý bác sĩ</h1>
                     <p className="text-muted-foreground">
-                        Manage doctor profiles and certifications
+                        Quản lý hồ sơ và chứng chỉ bác sĩ
                     </p>
                 </div>
 
@@ -248,43 +248,43 @@ export function Doctors() {
                     <DialogTrigger asChild>
                         <Button>
                             <Plus className="mr-2 h-4 w-4" />
-                            Add Doctor
+                            Thêm bác sĩ
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
-                            <DialogTitle>Add New Doctor</DialogTitle>
+                            <DialogTitle>Thêm bác sĩ mới</DialogTitle>
                         </DialogHeader>
                         <div className="grid grid-cols-2 gap-4 py-4">
                             {/* Full Name */}
                             <div className="space-y-2">
-                                <Label htmlFor="full_name">Full Name</Label>
+                                <Label htmlFor="full_name">Họ tên</Label>
                                 <Input
                                     id="full_name"
-                                    placeholder="Dr. John Doe"
+                                    placeholder="Bác sĩ Nguyễn Văn A"
                                     value={newDoctor.full_name}
                                     onChange={handleInputChange}
                                 />
                             </div>
                             {/* Username */}
                             <div className="space-y-2">
-                                <Label htmlFor="username">Username</Label>
+                                <Label htmlFor="username">Tên đăng nhập</Label>
                                 <Input
                                     id="username"
-                                    placeholder="john.doe"
+                                    placeholder="nguyen.van.a"
                                     value={newDoctor.username}
                                     onChange={handleInputChange}
                                 />
                             </div>
                             {/* Specialty */}
                             <div className="space-y-2">
-                                <Label htmlFor="specialty">Specialty</Label>
+                                <Label htmlFor="specialty">Chuyên khoa</Label>
                                 <Select
                                     value={newDoctor.specialty}
                                     onValueChange={(val) => handleSelectChange('specialty', val)}
                                 >
                                     <SelectTrigger id="specialty">
-                                        <SelectValue placeholder="Select specialty" />
+                                        <SelectValue placeholder="Chọn chuyên khoa" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {uniqueSpecialties.map(s => (
@@ -295,10 +295,10 @@ export function Doctors() {
                             </div>
                             {/* Phone Number */}
                             <div className="space-y-2">
-                                <Label htmlFor="phone">Phone Number</Label>
+                                <Label htmlFor="phone">Số điện thoại</Label>
                                 <Input
                                     id="phone"
-                                    placeholder="Enter phone number"
+                                    placeholder="Nhập số điện thoại"
                                     value={newDoctor.phone}
                                     onChange={handleInputChange}
                                 />
@@ -309,17 +309,17 @@ export function Doctors() {
                                 <Input
                                     id="email"
                                     type="email"
-                                    placeholder="Enter email address"
+                                    placeholder="Nhập địa chỉ email"
                                     value={newDoctor.email}
                                     onChange={handleInputChange}
                                 />
                             </div>
                             {/* Address */}
                             <div className="space-y-2">
-                                <Label htmlFor="address">Address</Label>
+                                <Label htmlFor="address">Địa chỉ</Label>
                                 <Input
                                     id="address"
-                                    placeholder="123 Main St"
+                                    placeholder="123 Đường chính"
                                     value={newDoctor.address}
                                     onChange={handleInputChange}
                                 />
@@ -327,19 +327,19 @@ export function Doctors() {
 
                             {/* Status */}
                             <div className="space-y-2">
-                                <Label htmlFor="specialty">Status</Label>
+                                <Label htmlFor="status">Trạng thái</Label>
                                 <Select
                                     value={newDoctor.status}
                                     onValueChange={(val) => handleSelectChange('status', val as DoctorStatus)}
                                 >
                                     <SelectTrigger id="status">
-                                        <SelectValue placeholder="Select status" />
+                                        <SelectValue placeholder="Chọn trạng thái" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="Active">Active</SelectItem>
+                                        <SelectItem value="Active">Đang làm việc</SelectItem>
                                         {/* Sửa value từ "On Leave" thành "On_Leave" để khớp với DB ENUM */}
-                                        <SelectItem value="On_Leave">On Leave</SelectItem>
-                                        <SelectItem value="Inactive">Inactive</SelectItem>
+                                        <SelectItem value="On_Leave">Nghỉ phép</SelectItem>
+                                        <SelectItem value="Inactive">Không hoạt động</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -349,10 +349,10 @@ export function Doctors() {
                         )}
                         <div className="flex justify-end space-x-2">
                             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                                Cancel
+                                Hủy
                             </Button>
                             <Button onClick={handleAddDoctor}>
-                                Add Doctor
+                                Thêm bác sĩ
                             </Button>
                         </div>
                     </DialogContent>
@@ -361,8 +361,8 @@ export function Doctors() {
             {/* --- TABS --- */}
             <Tabs defaultValue="doctors" className="space-y-4">
                 <TabsList>
-                    <TabsTrigger value="doctors">Doctors</TabsTrigger>
-                    <TabsTrigger value="certificates">Certificates ({certificates.length})</TabsTrigger>
+                    <TabsTrigger value="doctors">Bác sĩ</TabsTrigger>
+                    <TabsTrigger value="certificates">Chứng chỉ ({certificates.length})</TabsTrigger>
                 </TabsList>
 
                 {/* --- DOCTORS TAB CONTENT --- */}
@@ -370,13 +370,13 @@ export function Doctors() {
                     <Card>
                         <CardHeader>
                             <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
-                                <CardTitle>All Doctors ({filteredDoctors.length})</CardTitle>
+                                <CardTitle>Tất cả bác sĩ ({filteredDoctors.length})</CardTitle>
                                 <div className="flex flex-col sm:flex-row gap-2">
                                     {/* Search Input */}
                                     <div className="relative">
                                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                                         <Input
-                                            placeholder="Search doctors..."
+                                            placeholder="Tìm kiếm bác sĩ..."
                                             value={searchTerm}
                                             onChange={(e) => setSearchTerm(e.target.value)}
                                             className="pl-8 w-64"
@@ -386,10 +386,10 @@ export function Doctors() {
                                     <Select value={specialtyFilter} onValueChange={setSpecialtyFilter}>
                                         <SelectTrigger className="w-40">
                                             <Filter className="mr-2 h-4 w-4" />
-                                            <SelectValue placeholder="Specialty" />
+                                            <SelectValue placeholder="Chuyên khoa" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="All">All Specialties</SelectItem>
+                                            <SelectItem value="All">Tất cả chuyên khoa</SelectItem>
                                             {uniqueSpecialties.map(s => (
                                                 <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
                                             ))}
@@ -398,19 +398,19 @@ export function Doctors() {
                                     {/* Status Filter */}
                                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                                         <SelectTrigger className="w-32">
-                                            <SelectValue placeholder="Status" />
+                                            <SelectValue placeholder="Trạng thái" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="All">All Status</SelectItem>
-                                            <SelectItem value="Active">Active</SelectItem>
+                                            <SelectItem value="All">Tất cả trạng thái</SelectItem>
+                                            <SelectItem value="Active">Đang làm việc</SelectItem>
                                             {/* Sửa value từ "On Leave" thành "On_Leave" */}
-                                            <SelectItem value="On_Leave">On Leave</SelectItem>
-                                            <SelectItem value="Inactive">Inactive</SelectItem>
+                                            <SelectItem value="On_Leave">Nghỉ phép</SelectItem>
+                                            <SelectItem value="Inactive">Không hoạt động</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <Button variant="outline">
                                         <Download className="mr-2 h-4 w-4" />
-                                        Export
+                                        Xuất file
                                     </Button>
                                 </div>
                             </div>
@@ -420,12 +420,12 @@ export function Doctors() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Doctor</TableHead>
-                                            <TableHead>Specialty</TableHead>
-                                            <TableHead>Phone</TableHead>
+                                            <TableHead>Bác sĩ</TableHead>
+                                            <TableHead>Chuyên khoa</TableHead>
+                                            <TableHead>Số điện thoại</TableHead>
                                             <TableHead>Email</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Actions</TableHead>
+                                            <TableHead>Trạng thái</TableHead>
+                                            <TableHead>Hành động</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -470,7 +470,7 @@ export function Doctors() {
                                         {filteredDoctors.length === 0 && (
                                             <TableRow>
                                                 <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
-                                                    No doctors found matching your criteria.
+                                                    Không tìm thấy bác sĩ nào theo điều kiện tìm kiếm.
                                                 </TableCell>
                                             </TableRow>
                                         )}
@@ -487,7 +487,7 @@ export function Doctors() {
                         <CardHeader>
                             <CardTitle className="flex items-center">
                                 <Award className="mr-2 h-5 w-5" />
-                                Doctor Certificates ({certificates.length})
+                                Chứng chỉ bác sĩ ({certificates.length})
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -495,12 +495,12 @@ export function Doctors() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Doctor</TableHead>
-                                            <TableHead>Certificate Name</TableHead>
-                                            <TableHead>Issued By</TableHead>
-                                            <TableHead>Issue Date</TableHead>
-                                            <TableHead>Expiry Date</TableHead>
-                                            <TableHead>Status</TableHead>
+                                            <TableHead>Bác sĩ</TableHead>
+                                            <TableHead>Tên chứng chỉ</TableHead>
+                                            <TableHead>Nơi cấp</TableHead>
+                                            <TableHead>Ngày cấp</TableHead>
+                                            <TableHead>Ngày hết hạn</TableHead>
+                                            <TableHead>Trạng thái</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -531,7 +531,7 @@ export function Doctors() {
                                                             isExpired ? 'destructive' :
                                                                 isExpiringSoon ? 'secondary' : 'default'
                                                         }>
-                                                            {isExpired ? 'Expired' : isExpiringSoon ? 'Expiring Soon' : 'Valid'}
+                                                            {isExpired ? 'Đã hết hạn' : isExpiringSoon ? 'Sắp hết hạn' : 'Còn hiệu lực'}
                                                         </Badge>
                                                     </TableCell>
                                                 </TableRow>

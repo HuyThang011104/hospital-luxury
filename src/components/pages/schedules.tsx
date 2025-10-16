@@ -195,7 +195,7 @@ export function Schedules() {
 
         // Kiểm tra validation cơ bản
         if (!newSchedule.doctor_id || !newSchedule.shift_id || !newSchedule.room_id || !newSchedule.work_date) {
-            setAddScheduleError("Please fill in all required fields.");
+            setAddScheduleError("Vui lòng điền tất cả các trường bắt buộc.");
             return;
         }
 
@@ -234,7 +234,7 @@ export function Schedules() {
             console.log('Schedule added successfully:', addedSchedule);
         } catch (error: any) {
             console.error('Error adding schedule:', error);
-            setAddScheduleError(`Failed to assign shift: ${error.message || 'Unknown error'}`);
+            setAddScheduleError(`Phân ca làm việc thất bại: ${error.message || 'Lỗi không xác định'}`);
         }
     };
 
@@ -257,7 +257,7 @@ export function Schedules() {
             console.log('Leave request approved:', id);
         } catch (error: any) {
             console.error('Error approving leave request:', error);
-            setLeaveRequestError(`Failed to approve leave request: ${error.message || 'Unknown error'}`);
+            setLeaveRequestError(`Duyệt yêu cầu nghỉ phép thất bại: ${error.message || 'Lỗi không xác định'}`);
         }
     };
 
@@ -280,7 +280,7 @@ export function Schedules() {
             console.log('Leave request rejected:', id);
         } catch (error: any) {
             console.error('Error rejecting leave request:', error);
-            setLeaveRequestError(`Failed to reject leave request: ${error.message || 'Unknown error'}`);
+            setLeaveRequestError(`Từ chối yêu cầu nghỉ phép thất bại: ${error.message || 'Lỗi không xác định'}`);
         }
     };
 
@@ -315,16 +315,16 @@ export function Schedules() {
     const loading = schedulesLoading || leaveRequestsLoading || doctorsLoading || roomsLoading || shiftsLoading;
 
     if (loading) {
-        return <div className="text-center py-10">Loading schedules, leave requests, doctors, rooms, and shifts...</div>;
+        return <div className="text-center py-10">Đang tải lịch làm việc, yêu cầu nghỉ phép, bác sĩ, phòng và ca làm việc...</div>;
     }
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1>Work Schedules</h1>
+                    <h1>Lịch làm việc</h1>
                     <p className="text-muted-foreground">
-                        Manage doctor schedules and leave requests
+                        Quản lý lịch làm việc và yêu cầu nghỉ phép của bác sĩ
                     </p>
                 </div>
                 {leaveRequestError && (
@@ -336,11 +336,11 @@ export function Schedules() {
                 <TabsList>
                     <TabsTrigger value="schedules" className="flex items-center">
                         <Calendar className="mr-2 h-4 w-4" />
-                        Schedules
+                        Lịch làm việc
                     </TabsTrigger>
                     <TabsTrigger value="leave-requests" className="flex items-center">
                         <AlertCircle className="mr-2 h-4 w-4" />
-                        Leave Requests
+                        Yêu cầu nghỉ phép
                     </TabsTrigger>
                 </TabsList>
 
@@ -350,7 +350,7 @@ export function Schedules() {
                         <Card>
                             <CardHeader>
                                 <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
-                                    <CardTitle>Schedule Overview</CardTitle>
+                                    <CardTitle>Tổng quan lịch làm việc</CardTitle>
                                     <div className="flex items-center space-x-2">
                                         <Input
                                             type="date"
@@ -365,22 +365,22 @@ export function Schedules() {
                                             <DialogTrigger asChild>
                                                 <Button>
                                                     <Plus className="mr-2 h-4 w-4" />
-                                                    Assign Shift
+                                                    Phân ca làm việc
                                                 </Button>
                                             </DialogTrigger>
                                             <DialogContent>
                                                 <DialogHeader>
-                                                    <DialogTitle>Assign New Shift</DialogTitle>
+                                                    <DialogTitle>Phân ca làm việc mới</DialogTitle>
                                                 </DialogHeader>
                                                 <div className="grid grid-cols-2 gap-4 py-4">
                                                     <div className="space-y-2">
-                                                        <Label htmlFor="doctor_id">Doctor</Label>
+                                                        <Label htmlFor="doctor_id">Bác sĩ</Label>
                                                         <Select
                                                             value={newSchedule.doctor_id}
                                                             onValueChange={(value) => handleScheduleSelectChange('doctor_id', value)}
                                                         >
                                                             <SelectTrigger>
-                                                                <SelectValue placeholder="Select doctor" />
+                                                                <SelectValue placeholder="Chọn bác sĩ" />
                                                             </SelectTrigger>
                                                             <SelectContent>
                                                                 {doctors.map(doctor => (
@@ -392,13 +392,13 @@ export function Schedules() {
                                                         </Select>
                                                     </div>
                                                     <div className="space-y-2">
-                                                        <Label htmlFor="room_id">Room</Label>
+                                                        <Label htmlFor="room_id">Phòng</Label>
                                                         <Select
                                                             value={newSchedule.room_id}
                                                             onValueChange={(value) => handleScheduleSelectChange('room_id', value)}
                                                         >
                                                             <SelectTrigger>
-                                                                <SelectValue placeholder="Select room" />
+                                                                <SelectValue placeholder="Chọn phòng" />
                                                             </SelectTrigger>
                                                             <SelectContent>
                                                                 {rooms.map(room => (
@@ -410,7 +410,7 @@ export function Schedules() {
                                                         </Select>
                                                     </div>
                                                     <div className="space-y-2">
-                                                        <Label htmlFor="work_date">Date</Label>
+                                                        <Label htmlFor="work_date">Ngày</Label>
                                                         <Input
                                                             id="work_date"
                                                             type="date"
@@ -419,13 +419,13 @@ export function Schedules() {
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
-                                                        <Label htmlFor="shift_id">Shift</Label>
+                                                        <Label htmlFor="shift_id">Ca làm việc</Label>
                                                         <Select
                                                             value={newSchedule.shift_id}
                                                             onValueChange={(value) => handleScheduleSelectChange('shift_id', value)}
                                                         >
                                                             <SelectTrigger>
-                                                                <SelectValue placeholder="Select shift" />
+                                                                <SelectValue placeholder="Chọn ca làm việc" />
                                                             </SelectTrigger>
                                                             <SelectContent>
                                                                 {shifts.map(shift => (
@@ -437,19 +437,19 @@ export function Schedules() {
                                                         </Select>
                                                     </div>
                                                     <div className="space-y-2">
-                                                        <Label htmlFor="status">Status</Label>
+                                                        <Label htmlFor="status">Trạng thái</Label>
                                                         <Select
                                                             value={newSchedule.status}
                                                             onValueChange={(value) => handleScheduleSelectChange('status', value as WorkScheduleStatus)}
                                                         >
                                                             <SelectTrigger>
-                                                                <SelectValue placeholder="Select status" />
+                                                                <SelectValue placeholder="Chọn trạng thái" />
                                                             </SelectTrigger>
                                                             <SelectContent>
-                                                                <SelectItem value="Scheduled">Scheduled</SelectItem>
-                                                                <SelectItem value="In Progress">In Progress</SelectItem>
-                                                                <SelectItem value="Completed">Completed</SelectItem>
-                                                                <SelectItem value="Cancelled">Cancelled</SelectItem>
+                                                                <SelectItem value="Scheduled">Đã lên lịch</SelectItem>
+                                                                <SelectItem value="In Progress">Đang làm việc</SelectItem>
+                                                                <SelectItem value="Completed">Hoàn thành</SelectItem>
+                                                                <SelectItem value="Cancelled">Đã hủy</SelectItem>
                                                             </SelectContent>
                                                         </Select>
                                                     </div>
@@ -459,10 +459,10 @@ export function Schedules() {
                                                 )}
                                                 <div className="flex justify-end space-x-2">
                                                     <Button variant="outline" onClick={() => setIsAssignShiftDialogOpen(false)}>
-                                                        Cancel
+                                                        Hủy
                                                     </Button>
                                                     <Button onClick={handleAssignShift}>
-                                                        Assign Shift
+                                                        Phân ca làm việc
                                                     </Button>
                                                 </div>
                                             </DialogContent>
@@ -476,7 +476,7 @@ export function Schedules() {
                         <Card>
                             <CardHeader>
                                 <CardTitle>
-                                    Schedule for {new Date(selectedDate).toLocaleDateString()}
+                                    Lịch làm việc cho ngày {new Date(selectedDate).toLocaleDateString()}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
@@ -484,19 +484,19 @@ export function Schedules() {
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
-                                                <TableHead>Doctor</TableHead>
-                                                <TableHead>Room</TableHead>
-                                                <TableHead>Shift</TableHead>
-                                                <TableHead>Time</TableHead>
-                                                <TableHead>Status</TableHead>
-                                                <TableHead>Actions</TableHead>
+                                                <TableHead>Bác sĩ</TableHead>
+                                                <TableHead>Phòng</TableHead>
+                                                <TableHead>Ca làm việc</TableHead>
+                                                <TableHead>Thời gian</TableHead>
+                                                <TableHead>Trạng thái</TableHead>
+                                                <TableHead>Hành động</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
                                             {schedules.length === 0 ? (
                                                 <TableRow>
                                                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                                                        No schedules for this date
+                                                        Không có lịch làm việc cho ngày này
                                                     </TableCell>
                                                 </TableRow>
                                             ) : (
@@ -516,7 +516,7 @@ export function Schedules() {
                                                         </TableCell>
                                                         <TableCell>
                                                             <span className={getShiftColor(schedule.shift?.name || '')}>
-                                                                {schedule.shift?.name || 'No shift'}
+                                                                {schedule.shift?.name || 'Không có ca'}
                                                             </span>
                                                         </TableCell>
                                                         <TableCell>
@@ -529,10 +529,10 @@ export function Schedules() {
                                                         <TableCell>
                                                             <div className="flex space-x-1">
                                                                 <Button variant="ghost" size="sm">
-                                                                    Edit
+                                                                    Chỉnh sửa
                                                                 </Button>
                                                                 <Button variant="ghost" size="sm">
-                                                                    Cancel
+                                                                    Hủy
                                                                 </Button>
                                                             </div>
                                                         </TableCell>
@@ -548,16 +548,16 @@ export function Schedules() {
                         {/* Weekly Overview */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>Weekly Overview</CardTitle>
+                                <CardTitle>Tổng quan tuần</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="grid grid-cols-7 gap-2">
-                                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
+                                    {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((day) => (
                                         <div key={day} className="text-center">
                                             <div className="font-medium text-sm mb-2">{day}</div>
                                             <div className="space-y-1">
                                                 <div className="text-xs text-muted-foreground">
-                                                    {schedules.filter(s => new Date(s.work_date).toLocaleDateString('en-US', { weekday: 'short' }) === day.substring(0, 3)).length} schedules
+                                                    {schedules.filter(s => new Date(s.work_date).toLocaleDateString('en-US', { weekday: 'short' }) === day.substring(0, 3)).length} lịch làm việc
                                                 </div>
                                             </div>
                                         </div>
@@ -571,21 +571,21 @@ export function Schedules() {
                 <TabsContent value="leave-requests">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Leave Requests</CardTitle>
+                            <CardTitle>Yêu cầu nghỉ phép</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="overflow-x-auto">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Doctor</TableHead>
-                                            <TableHead>Request Date</TableHead>
-                                            <TableHead>Start Date</TableHead>
-                                            <TableHead>End Date</TableHead>
-                                            <TableHead>Days</TableHead>
-                                            <TableHead>Reason</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Actions</TableHead>
+                                            <TableHead>Bác sĩ</TableHead>
+                                            <TableHead>Ngày yêu cầu</TableHead>
+                                            <TableHead>Ngày bắt đầu</TableHead>
+                                            <TableHead>Ngày kết thúc</TableHead>
+                                            <TableHead>Số ngày</TableHead>
+                                            <TableHead>Lý do</TableHead>
+                                            <TableHead>Trạng thái</TableHead>
+                                            <TableHead>Hành động</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -600,8 +600,8 @@ export function Schedules() {
                                                     <TableCell>{request.request_date ? new Date(request.request_date).toLocaleDateString() : 'N/A'}</TableCell>
                                                     <TableCell>{request.start_date ? new Date(request.start_date).toLocaleDateString() : 'N/A'}</TableCell>
                                                     <TableCell>{request.end_date ? new Date(request.end_date).toLocaleDateString() : 'N/A'}</TableCell>
-                                                    <TableCell>{days} day{days !== 1 ? 's' : ''}</TableCell>
-                                                    <TableCell className="max-w-40 truncate">{request.reason || 'No reason provided'}</TableCell>
+                                                    <TableCell>{days} ngày</TableCell>
+                                                    <TableCell className="max-w-40 truncate">{request.reason || 'Không có lý do'}</TableCell>
                                                     <TableCell>{getLeaveStatusBadge(request.status)}</TableCell>
                                                     <TableCell>
                                                         {request.status === 'Pending' ? (
@@ -635,7 +635,7 @@ export function Schedules() {
                                         {leaveRequests.length === 0 && (
                                             <TableRow>
                                                 <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                                                    No leave requests found.
+                                                    Không tìm thấy yêu cầu nghỉ phép nào.
                                                 </TableCell>
                                             </TableRow>
                                         )}

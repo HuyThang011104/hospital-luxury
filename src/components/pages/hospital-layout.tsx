@@ -43,7 +43,7 @@ const menuItems = [
     { id: 'pharmacy', label: 'Pharmacy & Equipment', icon: Pill },
     { id: 'payments', label: 'Payments & Insurance', icon: CreditCard },
     { id: 'schedules', label: 'Work Schedules', icon: Clock },
-    { id: 'reports', label: 'Reports', icon: BarChart3 },
+    // { id: 'reports', label: 'Reports', icon: BarChart3 },
     { id: 'settings', label: 'Settings', icon: Settings },
 ];
 

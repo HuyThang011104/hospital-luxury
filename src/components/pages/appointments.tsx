@@ -173,7 +173,7 @@ export function Appointments() {
 
         // Kiểm tra validation cơ bản
         if (!newAppointment.patient_id || !newAppointment.doctor_id || !newAppointment.appointment_date) {
-            setAddAppointmentError("Please fill in all required fields (Patient, Doctor, Date).");
+            setAddAppointmentError("Vui lòng điền tất cả các trường bắt buộc (Bệnh nhân, Bác sĩ, Ngày).");
             return;
         }
 
@@ -213,7 +213,7 @@ export function Appointments() {
             console.log('Appointment added successfully:', addedAppointment);
         } catch (error: any) {
             console.error('Error adding appointment:', error);
-            setAddAppointmentError(`Failed to add appointment: ${error.message || 'Unknown error'}`);
+            setAddAppointmentError(`Thêm cuộc hẹn thất bại: ${error.message || 'Lỗi không xác định'}`);
         }
     };
 
@@ -261,16 +261,16 @@ export function Appointments() {
     const loading = appointmentsLoading || patientsLoading || doctorsLoading || shiftsLoading;
 
     if (loading) {
-        return <div className="text-center py-10">Loading appointments, patients, doctors, and shifts...</div>;
+        return <div className="text-center py-10">Đang tải cuộc hẹn, bệnh nhân, bác sĩ và ca làm việc...</div>;
     }
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1>Appointments</h1>
+                    <h1>Lịch hẹn</h1>
                     <p className="text-muted-foreground">
-                        Manage patient appointments and schedules
+                        Quản lý lịch hẹn và lịch trình của bệnh nhân
                     </p>
                 </div>
 
@@ -282,7 +282,7 @@ export function Appointments() {
                             onClick={() => setViewMode('table')}
                             className="rounded-r-none"
                         >
-                            Table
+                            Bảng
                         </Button>
                         <Button
                             variant={viewMode === 'calendar' ? 'default' : 'ghost'}
@@ -291,7 +291,7 @@ export function Appointments() {
                             className="rounded-l-none"
                         >
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            Calendar
+                            Lịch
                         </Button>
                     </div>
 
@@ -302,22 +302,22 @@ export function Appointments() {
                         <DialogTrigger asChild>
                             <Button>
                                 <Plus className="mr-2 h-4 w-4" />
-                                New Appointment
+                                Tạo lịch hẹn mới
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="max-w-2xl">
                             <DialogHeader>
-                                <DialogTitle>Schedule New Appointment</DialogTitle>
+                                <DialogTitle>Tạo lịch hẹn mới</DialogTitle>
                             </DialogHeader>
                             <div className="grid grid-cols-2 gap-4 py-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="patient_id">Patient</Label>
+                                    <Label htmlFor="patient_id">Bệnh nhân</Label>
                                     <Select
                                         value={newAppointment.patient_id}
                                         onValueChange={(val) => handleSelectChange('patient_id', val)}
                                     >
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Select patient" />
+                                            <SelectValue placeholder="Chọn bệnh nhân" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {patients.map(patient => (
@@ -329,13 +329,13 @@ export function Appointments() {
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="doctor_id">Doctor</Label>
+                                    <Label htmlFor="doctor_id">Bác sĩ</Label>
                                     <Select
                                         value={newAppointment.doctor_id}
                                         onValueChange={(val) => handleSelectChange('doctor_id', val)}
                                     >
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Select doctor" />
+                                            <SelectValue placeholder="Chọn bác sĩ" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {doctors.map(doctor => (
@@ -347,7 +347,7 @@ export function Appointments() {
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="appointment_date">Date</Label>
+                                    <Label htmlFor="appointment_date">Ngày</Label>
                                     <Input
                                         id="appointment_date"
                                         type="date"
@@ -356,16 +356,16 @@ export function Appointments() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="shift_id">Shift</Label>
+                                    <Label htmlFor="shift_id">Ca làm việc</Label>
                                     <Select
                                         value={newAppointment.shift_id}
                                         onValueChange={(val) => handleSelectChange('shift_id', val)}
                                     >
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Select shift (optional)" />
+                                            <SelectValue placeholder="Chọn ca làm việc (tùy chọn)" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="none">No shift</SelectItem>
+                                            <SelectItem value="none">Không có ca</SelectItem>
                                             {shifts.map(shift => (
                                                 <SelectItem key={shift.id} value={shift.id.toString()}>
                                                     {shift.name} ({shift.start_time} - {shift.end_time})
@@ -375,26 +375,26 @@ export function Appointments() {
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="status">Status</Label>
+                                    <Label htmlFor="status">Trạng thái</Label>
                                     <Select
                                         value={newAppointment.status}
                                         onValueChange={(val) => handleSelectChange('status', val as AppointmentStatus)}
                                     >
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Select status" />
+                                            <SelectValue placeholder="Chọn trạng thái" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="Pending">Pending</SelectItem>
-                                            <SelectItem value="Completed">Completed</SelectItem>
-                                            <SelectItem value="Cancelled">Cancelled</SelectItem>
+                                            <SelectItem value="Pending">Chờ xử lý</SelectItem>
+                                            <SelectItem value="Completed">Hoàn thành</SelectItem>
+                                            <SelectItem value="Cancelled">Đã hủy</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
                                 <div className="col-span-2 space-y-2">
-                                    <Label htmlFor="notes">Notes</Label>
+                                    <Label htmlFor="notes">Ghi chú</Label>
                                     <Input
                                         id="notes"
-                                        placeholder="Appointment notes or reason"
+                                        placeholder="Ghi chú hoặc lý do cuộc hẹn"
                                         value={newAppointment.notes}
                                         onChange={handleInputChange}
                                     />
@@ -405,10 +405,10 @@ export function Appointments() {
                             )}
                             <div className="flex justify-end space-x-2">
                                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                                    Cancel
+                                    Hủy
                                 </Button>
                                 <Button onClick={handleAddAppointment}>
-                                    Schedule Appointment
+                                    Tạo lịch hẹn
                                 </Button>
                             </div>
                         </DialogContent>
@@ -420,12 +420,12 @@ export function Appointments() {
                 <Card>
                     <CardHeader>
                         <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
-                            <CardTitle>All Appointments</CardTitle>
+                            <CardTitle>Tất cả lịch hẹn</CardTitle>
                             <div className="flex flex-col sm:flex-row gap-2">
                                 <div className="relative">
                                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                                     <Input
-                                        placeholder="Search appointments..."
+                                        placeholder="Tìm kiếm lịch hẹn..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                         className="pl-8 w-64"
@@ -437,10 +437,10 @@ export function Appointments() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="All">All Status</SelectItem>
-                                        <SelectItem value="Pending">Pending</SelectItem>
-                                        <SelectItem value="Completed">Completed</SelectItem>
-                                        <SelectItem value="Cancelled">Cancelled</SelectItem>
+                                        <SelectItem value="All">Tất cả trạng thái</SelectItem>
+                                        <SelectItem value="Pending">Chờ xử lý</SelectItem>
+                                        <SelectItem value="Completed">Hoàn thành</SelectItem>
+                                        <SelectItem value="Cancelled">Đã hủy</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <Select value={doctorFilter} onValueChange={setDoctorFilter}>
@@ -448,7 +448,7 @@ export function Appointments() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="All">All Doctors</SelectItem>
+                                        <SelectItem value="All">Tất cả bác sĩ</SelectItem>
                                         {doctors.map(doctor => (
                                             <SelectItem key={doctor.id} value={doctor.id.toString()}>Dr. {doctor.full_name}</SelectItem>
                                         ))}
@@ -468,13 +468,13 @@ export function Appointments() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Patient</TableHead>
-                                        <TableHead>Doctor</TableHead>
-                                        <TableHead>Date</TableHead>
-                                        <TableHead>Time</TableHead>
-                                        <TableHead>Shift</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Notes</TableHead>
+                                        <TableHead>Bệnh nhân</TableHead>
+                                        <TableHead>Bác sĩ</TableHead>
+                                        <TableHead>Ngày</TableHead>
+                                        <TableHead>Thời gian</TableHead>
+                                        <TableHead>Ca làm việc</TableHead>
+                                        <TableHead>Trạng thái</TableHead>
+                                        <TableHead>Ghi chú</TableHead>
                                         {/* <TableHead>Actions</TableHead> */}
                                     </TableRow>
                                 </TableHeader>
@@ -492,7 +492,7 @@ export function Appointments() {
                                             </TableCell>
                                             <TableCell>
                                                 <span className={getShiftColor(appointment.shift?.name || '')}>
-                                                    {appointment.shift?.name || 'No shift'}
+                                                    {appointment.shift?.name || 'Không có ca'}
                                                 </span>
                                             </TableCell>
                                             <TableCell>{getStatusBadge(appointment.status)}</TableCell>
@@ -521,7 +521,7 @@ export function Appointments() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <Card className="lg:col-span-1">
                         <CardHeader>
-                            <CardTitle>Calendar</CardTitle>
+                            <CardTitle>Lịch</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <Calendar
@@ -536,7 +536,7 @@ export function Appointments() {
                     <Card className="lg:col-span-2">
                         <CardHeader>
                             <CardTitle>
-                                Appointments for {selectedDate?.toLocaleDateString()}
+                                Lịch hẹn cho ngày {selectedDate?.toLocaleDateString()}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -544,7 +544,7 @@ export function Appointments() {
                                 <div className="space-y-3">
                                     {getAppointmentsForDate(selectedDate).length === 0 ? (
                                         <p className="text-muted-foreground text-center py-8">
-                                            No appointments scheduled for this date
+                                            Không có lịch hẹn nào được lên lịch cho ngày này
                                         </p>
                                     ) : (
                                         getAppointmentsForDate(selectedDate).map((appointment) => (
@@ -561,10 +561,10 @@ export function Appointments() {
                                                             {appointment.appointment_date ? new Date(appointment.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
                                                         </span>
                                                         <span className={`text-sm ${getShiftColor(appointment.shift?.name || '')}`}>
-                                                            {appointment.shift?.name || 'No shift'}
+                                                            {appointment.shift?.name || 'Không có ca'}
                                                         </span>
                                                     </div>
-                                                    <p className="text-sm text-muted-foreground mt-1">{appointment.notes || 'No notes'}</p>
+                                                    <p className="text-sm text-muted-foreground mt-1">{appointment.notes || 'Không có ghi chú'}</p>
                                                 </div>
                                                 <div className="flex items-center space-x-2">
                                                     {getStatusBadge(appointment.status)}
