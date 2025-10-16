@@ -21,7 +21,7 @@ import { Textarea } from '../ui/textarea';
 import { Plus, Edit, Trash2, Building2, Bed, AlertTriangle, Search } from 'lucide-react';
 import { supabase } from '@/utils/backend/client';
 
-// --- INTERFACES ---
+// --- GIAO DIỆN (INTERFACES) ---
 interface IDepartment {
     id: number;
     name: string;
@@ -47,20 +47,20 @@ interface IBed {
     bed_number: string;
     status: BedStatus;
     room_id: number;
-    patient: { name: string } | null; // Giả sử join với bảng patient
+    patient: { name: string } | null; // Giả sử join với bảng bệnh nhân
     room: { // Dữ liệu join
         name: string;
         department: { name: string };
     };
 }
 
-// --- INITIAL FORM STATES ---
+// --- TRẠNG THÁI KHỞI TẠO CHO FORM ---
 const initialNewDepartmentState = { name: '', description: '', location: '' };
 const initialNewRoomState = { name: '', type: 'Normal' as RoomType, floor: '', department_id: 0, capacity: 1 };
 
 
 export function Departments() {
-    // --- STATE MANAGEMENT ---
+    // --- QUẢN LÝ STATE ---
     const [loading, setLoading] = useState(true);
     const [departments, setDepartments] = useState<IDepartment[]>([]);
     const [rooms, setRooms] = useState<IRoom[]>([]);
@@ -79,14 +79,14 @@ export function Departments() {
     const [bedSearchTerm, setBedSearchTerm] = useState('');
 
 
-    // --- FETCH DATA ---
+    // --- LẤY DỮ LIỆU ---
     useEffect(() => {
         const fetchAllData = async () => {
             setLoading(true);
             try {
                 await Promise.all([fetchDepartments(), fetchRooms(), fetchBeds()]);
             } catch (error) {
-                console.error("Error fetching initial data:", error);
+                console.error("Lỗi khi tải dữ liệu ban đầu:", error);
             } finally {
                 setLoading(false);
             }
@@ -113,9 +113,9 @@ export function Departments() {
     };
 
 
-    // --- CRUD HANDLERS ---
+    // --- XỬ LÝ THÊM / XÓA / SỬA ---
     const handleAddDepartment = async () => {
-        if (!newDepartment.name) return alert('Department Name is required.');
+        if (!newDepartment.name) return alert('Tên khoa là bắt buộc.');
         const { data, error } = await supabase.from('department').insert([newDepartment]).select().single();
         if (error) alert(error.message);
         else if (data) {
@@ -126,7 +126,7 @@ export function Departments() {
     };
 
     const handleAddRoom = async () => {
-        if (!newRoom.name || !newRoom.department_id) return alert('Room name and department are required.');
+        if (!newRoom.name || !newRoom.department_id) return alert('Tên phòng và khoa là bắt buộc.');
         const { data, error } = await supabase.from('room').insert([{ ...newRoom, occupied: 0 }]).select('*, department (id, name)').single();
         if (error) alert(error.message);
         else if (data) {
@@ -149,7 +149,7 @@ export function Departments() {
         setItemToDelete(null);
     };
 
-    // --- FORM INPUT HANDLERS ---
+    // --- XỬ LÝ INPUT FORM ---
     const handleDepartmentInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setNewDepartment(prev => ({ ...prev, [e.target.id]: e.target.value }));
     };
@@ -162,7 +162,7 @@ export function Departments() {
         setNewRoom(prev => ({ ...prev, [id]: value }));
     };
 
-    // --- FILTERED DATA ---
+    // --- DỮ LIỆU ĐÃ LỌC ---
     const filteredRooms = useMemo(() =>
         rooms.filter(room =>
             room.name.toLowerCase().includes(roomSearchTerm.toLowerCase()) ||
@@ -176,59 +176,59 @@ export function Departments() {
             bed.room.name.toLowerCase().includes(bedSearchTerm.toLowerCase())
         ), [beds, bedSearchTerm]);
 
-    // --- HELPERS ---
+    // --- HÀM PHỤ ---
     const getBedStatusColor = (status: BedStatus) => {
-        // ... (function as before)
+        // ... (giữ nguyên)
     };
 
-    // --- RENDER ---
+    // --- HIỂN THỊ ---
     if (loading) {
-        return <div className="flex justify-center items-center h-64">Loading hospital data...</div>;
+        return <div className="flex justify-center items-center h-64">Đang tải dữ liệu bệnh viện...</div>;
     }
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold">Departments & Rooms</h1>
-                    <p className="text-muted-foreground">Manage hospital departments, rooms, and bed allocation</p>
+                    <h1 className="text-2xl font-bold">Khoa & Phòng</h1>
+                    <p className="text-muted-foreground">Quản lý các khoa, phòng và giường bệnh trong bệnh viện</p>
                 </div>
             </div>
 
             <Tabs defaultValue="departments" className="space-y-4">
                 <TabsList>
-                    <TabsTrigger value="departments">Departments</TabsTrigger>
-                    <TabsTrigger value="rooms">Rooms</TabsTrigger>
-                    <TabsTrigger value="beds">Beds</TabsTrigger>
+                    <TabsTrigger value="departments">Khoa</TabsTrigger>
+                    <TabsTrigger value="rooms">Phòng</TabsTrigger>
+                    <TabsTrigger value="beds">Giường bệnh</TabsTrigger>
                 </TabsList>
 
-                {/* DEPARTMENTS TAB */}
+                {/* TAB KHOA */}
                 <TabsContent value="departments">
                     <Card>
                         <CardHeader>
                             <div className="flex justify-between items-center">
-                                <CardTitle className="flex items-center"><Building2 className="mr-2 h-5 w-5" /> Departments</CardTitle>
+                                <CardTitle className="flex items-center"><Building2 className="mr-2 h-5 w-5" /> Danh sách khoa</CardTitle>
                                 <Dialog open={isAddDeptDialogOpen} onOpenChange={setIsAddDeptDialogOpen}>
-                                    <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" /> Add Department</Button></DialogTrigger>
+                                    <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" /> Thêm khoa</Button></DialogTrigger>
                                     <DialogContent>
-                                        <DialogHeader><DialogTitle>Add New Department</DialogTitle></DialogHeader>
+                                        <DialogHeader><DialogTitle>Thêm khoa mới</DialogTitle></DialogHeader>
                                         <div className="space-y-4 py-4">
                                             <div className="space-y-2">
-                                                <Label htmlFor="name">Department Name</Label>
-                                                <Input id="name" value={newDepartment.name} onChange={handleDepartmentInputChange} placeholder="Enter department name" />
+                                                <Label htmlFor="name">Tên khoa</Label>
+                                                <Input id="name" value={newDepartment.name} onChange={handleDepartmentInputChange} placeholder="Nhập tên khoa" />
                                             </div>
                                             <div className="space-y-2">
-                                                <Label htmlFor="description">Description</Label>
-                                                <Textarea id="description" value={newDepartment.description} onChange={handleDepartmentInputChange} placeholder="Enter department description" />
+                                                <Label htmlFor="description">Mô tả</Label>
+                                                <Textarea id="description" value={newDepartment.description} onChange={handleDepartmentInputChange} placeholder="Nhập mô tả khoa" />
                                             </div>
                                             <div className="space-y-2">
-                                                <Label htmlFor="location">Location</Label>
-                                                <Input id="location" value={newDepartment.location} onChange={handleDepartmentInputChange} placeholder="Building, Floor" />
+                                                <Label htmlFor="location">Vị trí</Label>
+                                                <Input id="location" value={newDepartment.location} onChange={handleDepartmentInputChange} placeholder="Tòa nhà, tầng..." />
                                             </div>
                                         </div>
                                         <DialogFooter>
-                                            <Button variant="outline" onClick={() => setIsAddDeptDialogOpen(false)}>Cancel</Button>
-                                            <Button onClick={handleAddDepartment}>Add Department</Button>
+                                            <Button variant="outline" onClick={() => setIsAddDeptDialogOpen(false)}>Hủy</Button>
+                                            <Button onClick={handleAddDepartment}>Thêm</Button>
                                         </DialogFooter>
                                     </DialogContent>
                                 </Dialog>
@@ -242,7 +242,7 @@ export function Departments() {
                                             <div className="flex justify-between items-start">
                                                 <div>
                                                     <CardTitle className="text-lg">{dept.name}</CardTitle>
-                                                    <p className="text-sm text-muted-foreground">{dept.location || 'N/A'}</p>
+                                                    <p className="text-sm text-muted-foreground">{dept.location || 'Không xác định'}</p>
                                                 </div>
                                                 <div className="flex space-x-1">
                                                     <Button variant="ghost" size="icon" className="h-8 w-8"><Edit className="h-4 w-4" /></Button>
@@ -250,7 +250,7 @@ export function Departments() {
                                                 </div>
                                             </div>
                                         </CardHeader>
-                                        <CardContent><p className="text-sm">{dept.description || 'No description.'}</p></CardContent>
+                                        <CardContent><p className="text-sm">{dept.description || 'Chưa có mô tả.'}</p></CardContent>
                                     </Card>
                                 ))}
                             </div>
@@ -258,34 +258,34 @@ export function Departments() {
                     </Card>
                 </TabsContent>
 
-                {/* ROOMS TAB */}
+                {/* TAB PHÒNG */}
                 <TabsContent value="rooms">
                     <Card>
                         <CardHeader>
                             <div className="flex justify-between items-center">
-                                <CardTitle>Rooms</CardTitle>
+                                <CardTitle>Danh sách phòng</CardTitle>
                                 <div className="flex items-center space-x-2">
                                     <div className="relative w-64">
                                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                        <Input placeholder="Search room or department..." value={roomSearchTerm} onChange={e => setRoomSearchTerm(e.target.value)} className="pl-8" />
+                                        <Input placeholder="Tìm theo phòng hoặc khoa..." value={roomSearchTerm} onChange={e => setRoomSearchTerm(e.target.value)} className="pl-8" />
                                     </div>
                                     <Dialog open={isAddRoomDialogOpen} onOpenChange={setIsAddRoomDialogOpen}>
-                                        <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" /> Add Room</Button></DialogTrigger>
+                                        <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" /> Thêm phòng</Button></DialogTrigger>
                                         <DialogContent>
-                                            <DialogHeader><DialogTitle>Add New Room</DialogTitle></DialogHeader>
+                                            <DialogHeader><DialogTitle>Thêm phòng mới</DialogTitle></DialogHeader>
                                             <div className="space-y-4 py-4">
-                                                <Input id="name" value={newRoom.name} onChange={handleRoomInputChange} placeholder="e.g., Room 101, ICU-01" />
+                                                <Input id="name" value={newRoom.name} onChange={handleRoomInputChange} placeholder="VD: Phòng 101, ICU-01" />
                                                 <Select value={String(newRoom.department_id)} onValueChange={(value) => handleRoomSelectChange('department_id', Number(value))}>
-                                                    <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
+                                                    <SelectTrigger><SelectValue placeholder="Chọn khoa" /></SelectTrigger>
                                                     <SelectContent>
                                                         {departments.map(dept => (<SelectItem key={dept.id} value={String(dept.id)}>{dept.name}</SelectItem>))}
                                                     </SelectContent>
                                                 </Select>
-                                                <Input id="capacity" type="number" min="1" value={newRoom.capacity} onChange={handleRoomInputChange} placeholder="Number of beds" />
+                                                <Input id="capacity" type="number" min="1" value={newRoom.capacity} onChange={handleRoomInputChange} placeholder="Số giường" />
                                             </div>
                                             <DialogFooter>
-                                                <Button variant="outline" onClick={() => setIsAddRoomDialogOpen(false)}>Cancel</Button>
-                                                <Button onClick={handleAddRoom}>Add Room</Button>
+                                                <Button variant="outline" onClick={() => setIsAddRoomDialogOpen(false)}>Hủy</Button>
+                                                <Button onClick={handleAddRoom}>Thêm</Button>
                                             </DialogFooter>
                                         </DialogContent>
                                     </Dialog>
@@ -294,14 +294,13 @@ export function Departments() {
                         </CardHeader>
                         <CardContent>
                             <Table>
-                                <TableHeader><TableRow><TableHead>Room</TableHead><TableHead>Type</TableHead><TableHead>Department</TableHead><TableHead>Capacity</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
+                                <TableHeader><TableRow><TableHead>Phòng</TableHead><TableHead>Loại</TableHead><TableHead>Khoa</TableHead><TableHead>Sức chứa</TableHead><TableHead>Hành động</TableHead></TableRow></TableHeader>
                                 <TableBody>
                                     {filteredRooms.map((room) => (
                                         <TableRow key={room.id}>
                                             <TableCell className="font-medium">{room.name}</TableCell>
                                             <TableCell><Badge>{room.type}</Badge></TableCell>
-                                            {/* Hiển thị tên khoa từ dữ liệu join */}
-                                            <TableCell>{room.department?.name || 'N/A'}</TableCell>
+                                            <TableCell>{room.department?.name || 'Không xác định'}</TableCell>
                                             <TableCell>{room.occupied}/{room.capacity}</TableCell>
                                             <TableCell>
                                                 <div className="flex space-x-1">
@@ -317,28 +316,27 @@ export function Departments() {
                     </Card>
                 </TabsContent>
 
-                {/* BEDS TAB */}
+                {/* TAB GIƯỜNG */}
                 <TabsContent value="beds">
                     <Card>
                         <CardHeader>
                             <div className="flex justify-between items-center">
-                                <CardTitle className="flex items-center"><Bed className="mr-2 h-5 w-5" /> Bed Management</CardTitle>
+                                <CardTitle className="flex items-center"><Bed className="mr-2 h-5 w-5" /> Quản lý giường bệnh</CardTitle>
                                 <div className="relative w-64">
                                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input placeholder="Search bed, patient..." value={bedSearchTerm} onChange={e => setBedSearchTerm(e.target.value)} className="pl-8" />
+                                    <Input placeholder="Tìm giường hoặc bệnh nhân..." value={bedSearchTerm} onChange={e => setBedSearchTerm(e.target.value)} className="pl-8" />
                                 </div>
                             </div>
                         </CardHeader>
                         <CardContent>
                             <Table>
-                                <TableHeader><TableRow><TableHead>Bed</TableHead><TableHead>Room</TableHead><TableHead>Department</TableHead><TableHead>Status</TableHead><TableHead>Patient</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
+                                <TableHeader><TableRow><TableHead>Giường</TableHead><TableHead>Phòng</TableHead><TableHead>Khoa</TableHead><TableHead>Trạng thái</TableHead><TableHead>Bệnh nhân</TableHead><TableHead>Hành động</TableHead></TableRow></TableHeader>
                                 <TableBody>
                                     {filteredBeds.map((bed) => (
                                         <TableRow key={bed.id}>
                                             <TableCell className="font-medium">{bed.bed_number}</TableCell>
-                                            {/* Hiển thị tên phòng và khoa từ dữ liệu join */}
-                                            <TableCell>{bed.room?.name || 'N/A'}</TableCell>
-                                            <TableCell>{bed.room?.department?.name || 'N/A'}</TableCell>
+                                            <TableCell>{bed.room?.name || 'Không xác định'}</TableCell>
+                                            <TableCell>{bed.room?.department?.name || 'Không xác định'}</TableCell>
                                             <TableCell><Badge>{bed.status}</Badge></TableCell>
                                             <TableCell>{bed.patient?.name || '---'}</TableCell>
                                             <TableCell><Button variant="ghost" size="icon" className="h-8 w-8"><Edit className="h-4 w-4" /></Button></TableCell>
@@ -351,16 +349,16 @@ export function Departments() {
                 </TabsContent>
             </Tabs>
 
-            {/* DELETE CONFIRMATION DIALOG */}
+            {/* HỘP THOẠI XÁC NHẬN XÓA */}
             <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Are you sure?</DialogTitle>
-                        <DialogDescription>This action cannot be undone. This will permanently delete the item.</DialogDescription>
+                        <DialogTitle>Bạn có chắc chắn muốn xóa?</DialogTitle>
+                        <DialogDescription>Hành động này không thể hoàn tác. Mục sẽ bị xóa vĩnh viễn.</DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
-                        <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
+                        <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Hủy</Button>
+                        <Button variant="destructive" onClick={confirmDelete}>Xóa</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

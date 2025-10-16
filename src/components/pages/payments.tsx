@@ -136,7 +136,7 @@ export function Payments() {
     const selectedPaymentData = selectedPayment ? payments.find(p => p.id === selectedPayment) : null;
 
     if (loading) {
-        return <div className="text-center py-10">Loading payment records...</div>;
+        return <div className="text-center py-10">Đang tải ghi nhận thanh toán...</div>;
     }
 
     return (
@@ -144,9 +144,9 @@ export function Payments() {
             {/* ... Phần JSX Header giữ nguyên ... */}
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold">Payments & Insurance</h1>
+                    <h1 className="text-3xl font-bold">Thanh toán & Bảo hiểm</h1>
                     <p className="text-muted-foreground">
-                        Manage patient payments, invoices, and insurance claims
+                        Quản lý thanh toán bệnh nhân, hóa đơn và yêu cầu bảo hiểm
                     </p>
                 </div>
             </div>
@@ -155,11 +155,11 @@ export function Payments() {
                 <TabsList>
                     <TabsTrigger value="payments" className="flex items-center">
                         <DollarSign className="mr-2 h-4 w-4" />
-                        Payments
+                        Thanh toán
                     </TabsTrigger>
                     <TabsTrigger value="insurance" className="flex items-center">
                         <Shield className="mr-2 h-4 w-4" />
-                        Insurance
+                        Bảo hiểm
                     </TabsTrigger>
                 </TabsList>
 
@@ -168,13 +168,13 @@ export function Payments() {
                     <Card>
                         <CardHeader>
                             <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
-                                <CardTitle>Payment Records ({filteredPayments.length})</CardTitle>
+                                <CardTitle>Ghi nhận thanh toán ({filteredPayments.length})</CardTitle>
                                 {/* ... Phần filter inputs giữ nguyên ... */}
                                 <div className="flex flex-col sm:flex-row gap-2">
                                     <div className="relative">
                                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                                         <Input
-                                            placeholder="Search by patient or invoice..."
+                                            placeholder="Tìm kiếm theo bệnh nhân hoặc hóa đơn..."
                                             value={searchTerm}
                                             onChange={(e) => setSearchTerm(e.target.value)}
                                             className="pl-8 w-64"
@@ -183,29 +183,29 @@ export function Payments() {
                                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                                         <SelectTrigger className="w-32">
                                             <Filter className="mr-2 h-4 w-4" />
-                                            <SelectValue placeholder="Status" />
+                                            <SelectValue placeholder="Trạng thái" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="All">All Status</SelectItem>
-                                            <SelectItem value="Paid">Paid</SelectItem>
-                                            <SelectItem value="Pending">Pending</SelectItem>
-                                            <SelectItem value="Cancelled">Cancelled</SelectItem>
+                                            <SelectItem value="All">Tất cả trạng thái</SelectItem>
+                                            <SelectItem value="Paid">Đã thanh toán</SelectItem>
+                                            <SelectItem value="Pending">Chờ xử lý</SelectItem>
+                                            <SelectItem value="Cancelled">Đã hủy</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <Select value={methodFilter} onValueChange={setMethodFilter}>
                                         <SelectTrigger className="w-32">
-                                            <SelectValue placeholder="Method" />
+                                            <SelectValue placeholder="Phương thức" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="All">All Methods</SelectItem>
-                                            <SelectItem value="Cash">Cash</SelectItem>
-                                            <SelectItem value="Card">Card</SelectItem>
-                                            <SelectItem value="Insurance">Insurance</SelectItem>
+                                            <SelectItem value="All">Tất cả phương thức</SelectItem>
+                                            <SelectItem value="Cash">Tiền mặt</SelectItem>
+                                            <SelectItem value="Card">Thẻ</SelectItem>
+                                            <SelectItem value="Insurance">Bảo hiểm</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <Button variant="outline">
                                         <Download className="mr-2 h-4 w-4" />
-                                        Export
+                                        Xuất file
                                     </Button>
                                 </div>
                             </div>
@@ -215,12 +215,12 @@ export function Payments() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Patient</TableHead>
-                                            <TableHead>Amount</TableHead>
-                                            <TableHead>Method</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Date</TableHead>
-                                            <TableHead>Actions</TableHead>
+                                            <TableHead>Bệnh nhân</TableHead>
+                                            <TableHead>Số tiền</TableHead>
+                                            <TableHead>Phương thức</TableHead>
+                                            <TableHead>Trạng thái</TableHead>
+                                            <TableHead>Ngày</TableHead>
+                                            <TableHead>Hành động</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -262,7 +262,7 @@ export function Payments() {
                         <CardHeader>
                             <CardTitle className="flex items-center">
                                 <Shield className="mr-2 h-5 w-5" />
-                                Insurance Policies ({insurancePolicies.length})
+                                Chính sách bảo hiểm ({insurancePolicies.length})
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -271,11 +271,11 @@ export function Payments() {
                                     <TableHeader>
                                         {/* ... Header của bảng insurance ... */}
                                         <TableRow>
-                                            <TableHead>Patient</TableHead>
-                                            <TableHead>Provider</TableHead>
-                                            <TableHead>Policy Number</TableHead>
-                                            <TableHead>Valid From</TableHead>
-                                            <TableHead>Valid To</TableHead>
+                                            <TableHead>Bệnh nhân</TableHead>
+                                            <TableHead>Nhà cung cấp</TableHead>
+                                            <TableHead>Số chính sách</TableHead>
+                                            <TableHead>Hiệu lực từ</TableHead>
+                                            <TableHead>Hiệu lực đến</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -303,7 +303,7 @@ export function Payments() {
                     <DialogHeader>
                         <DialogTitle className="flex items-center">
                             <FileText className="mr-2 h-5 w-5" />
-                            Invoice Details
+                            Chi tiết hóa đơn
                         </DialogTitle>
                     </DialogHeader>
 
@@ -311,12 +311,12 @@ export function Payments() {
                         <div className="space-y-6">
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <h3 className="text-lg font-semibold">HealthCare Hospital</h3>
-                                    <p className="text-sm text-muted-foreground">Invoice #{selectedPaymentData.invoice_id}</p>
-                                    <p className="text-sm text-muted-foreground">Date: {new Date(selectedPaymentData.payment_date).toLocaleDateString()}</p>
+                                    <h3 className="text-lg font-semibold">Bệnh viện Y tế HealthCare</h3>
+                                    <p className="text-sm text-muted-foreground">Hóa đơn #{selectedPaymentData.invoice_id}</p>
+                                    <p className="text-sm text-muted-foreground">Ngày: {new Date(selectedPaymentData.payment_date).toLocaleDateString()}</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-sm text-muted-foreground">Patient:</p>
+                                    <p className="text-sm text-muted-foreground">Bệnh nhân:</p>
                                     <p className="font-medium">{selectedPaymentData.patient.full_name}</p>
                                     <div className="mt-2">
                                         {getStatusBadge(selectedPaymentData.status)}
@@ -328,8 +328,8 @@ export function Payments() {
 
                             {/* Tạm thời comment out phần services vì chưa fetch */}
                             <div>
-                                <h4 className="font-medium mb-3">Services & Charges</h4>
-                                <p className="text-sm text-muted-foreground">Detailed service breakdown not available.</p>
+                                <h4 className="font-medium mb-3">Dịch vụ & Phí</h4>
+                                <p className="text-sm text-muted-foreground">Chi tiết dịch vụ hiện không khả dụng.</p>
                                 {/* Nếu bạn có dữ liệu services, hãy hiển thị ở đây */}
                             </div>
 
@@ -338,11 +338,11 @@ export function Payments() {
                             {/* Payment Summary */}
                             <div className="space-y-2">
                                 <div className="flex justify-between font-semibold text-lg">
-                                    <span>Total:</span>
+                                    <span>Tổng cộng:</span>
                                     <span>${selectedPaymentData.amount.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between items-center pt-2">
-                                    <span>Payment Method:</span>
+                                    <span>Phương thức thanh toán:</span>
                                     <div className="flex items-center space-x-2">
                                         {getMethodIcon(selectedPaymentData.method)}
                                         <span>{selectedPaymentData.method}</span>

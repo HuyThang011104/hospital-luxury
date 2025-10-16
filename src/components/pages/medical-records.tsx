@@ -141,17 +141,17 @@ export function MedicalRecords() {
     });
 
     const getTestStatusBadge = (result: string | null, testType: string) => {
-        if (!result) return <Badge variant="outline">Pending</Badge>;
+        if (!result) return <Badge variant="outline">Chờ xử lý</Badge>;
 
         const lowerResult = result.toLowerCase();
         if (lowerResult.includes('normal') || lowerResult.includes('no') || lowerResult.includes('negative')) {
-            return <Badge variant="default">Normal</Badge>;
+            return <Badge variant="default">Bình thường</Badge>;
         } else if (lowerResult.includes('abnormal') || lowerResult.includes('high') || lowerResult.includes('low')) {
-            return <Badge variant="destructive">Abnormal</Badge>;
+            return <Badge variant="destructive">Bất thường</Badge>;
         } else if (testType.toLowerCase().includes('mri') && lowerResult.includes('no')) {
-            return <Badge variant="default">Normal</Badge>;
+            return <Badge variant="default">Bình thường</Badge>;
         } else {
-            return <Badge variant="secondary">Review Required</Badge>;
+            return <Badge variant="secondary">Cần xem xét</Badge>;
         }
     };
 
@@ -169,16 +169,16 @@ export function MedicalRecords() {
     };
 
     if (loading) {
-        return <div className="text-center py-10">Loading medical records, prescriptions, and lab tests...</div>;
+        return <div className="text-center py-10">Đang tải hồ sơ bệnh án, đơn thuốc và xét nghiệm...</div>;
     }
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1>Medical Records</h1>
+                    <h1>Hồ sơ bệnh án</h1>
                     <p className="text-muted-foreground">
-                        Patient medical history and treatment records
+                        Tiền sử bệnh và hồ sơ điều trị của bệnh nhân
                     </p>
                 </div>
             </div>
@@ -188,12 +188,12 @@ export function MedicalRecords() {
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
                         <CardTitle className="flex items-center">
                             <FileText className="mr-2 h-5 w-5" />
-                            All Medical Records ({filteredRecords.length})
+                            Tất cả hồ sơ bệnh án ({filteredRecords.length})
                         </CardTitle>
                         <div className="relative">
                             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="Search records..."
+                                placeholder="Tìm kiếm hồ sơ..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="pl-8 w-64"
@@ -206,12 +206,12 @@ export function MedicalRecords() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Patient</TableHead>
-                                    <TableHead>Doctor</TableHead>
-                                    <TableHead>Diagnosis</TableHead>
-                                    <TableHead>Treatment</TableHead>
-                                    <TableHead>Date</TableHead>
-                                    <TableHead>Actions</TableHead>
+                                    <TableHead>Bệnh nhân</TableHead>
+                                    <TableHead>Bác sĩ</TableHead>
+                                    <TableHead>Chẩn đoán</TableHead>
+                                    <TableHead>Điều trị</TableHead>
+                                    <TableHead>Ngày</TableHead>
+                                    <TableHead>Hành động</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -219,8 +219,8 @@ export function MedicalRecords() {
                                     <TableRow key={record.id}>
                                         <TableCell>{record.patient?.full_name || 'N/A'}</TableCell>
                                         <TableCell>Dr. {record.doctor?.full_name || 'N/A'}</TableCell>
-                                        <TableCell>{record.diagnosis || 'Not recorded'}</TableCell>
-                                        <TableCell className="max-w-60 truncate">{record.treatment || 'Not recorded'}</TableCell>
+                                        <TableCell>{record.diagnosis || 'Chưa ghi nhận'}</TableCell>
+                                        <TableCell className="max-w-60 truncate">{record.treatment || 'Chưa ghi nhận'}</TableCell>
                                         <TableCell>
                                             <div className="flex items-center">
                                                 <Calendar className="mr-1 h-4 w-4 text-muted-foreground" />
@@ -241,7 +241,7 @@ export function MedicalRecords() {
                                 {filteredRecords.length === 0 && (
                                     <TableRow>
                                         <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                                            No medical records found matching your criteria.
+                                            Không tìm thấy hồ sơ bệnh án nào theo điều kiện tìm kiếm.
                                         </TableCell>
                                     </TableRow>
                                 )}
@@ -255,7 +255,7 @@ export function MedicalRecords() {
             <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>Medical Record Details</DialogTitle>
+                        <DialogTitle>Chi tiết hồ sơ bệnh án</DialogTitle>
                     </DialogHeader>
 
                     {selectedRecord && (
@@ -263,33 +263,33 @@ export function MedicalRecords() {
                             {/* Record Overview */}
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Record Overview</CardTitle>
+                                    <CardTitle>Tổng quan hồ sơ</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <p className="text-sm text-muted-foreground">Patient</p>
+                                            <p className="text-sm text-muted-foreground">Bệnh nhân</p>
                                             <p className="font-medium">{selectedRecord.patient?.full_name || 'N/A'}</p>
                                         </div>
                                         <div>
-                                            <p className="text-sm text-muted-foreground">Doctor</p>
+                                            <p className="text-sm text-muted-foreground">Bác sĩ</p>
                                             <p className="font-medium">Dr. {selectedRecord.doctor?.full_name || 'N/A'}</p>
                                         </div>
                                         <div>
-                                            <p className="text-sm text-muted-foreground">Department</p>
+                                            <p className="text-sm text-muted-foreground">Khoa</p>
                                             <p className="font-medium">{selectedRecord.doctor?.specialty?.name || 'N/A'}</p>
                                         </div>
                                         <div>
-                                            <p className="text-sm text-muted-foreground">Date</p>
+                                            <p className="text-sm text-muted-foreground">Ngày</p>
                                             <p className="font-medium">{selectedRecord.record_date ? new Date(selectedRecord.record_date).toLocaleDateString() : 'N/A'}</p>
                                         </div>
                                         <div className="col-span-2">
-                                            <p className="text-sm text-muted-foreground">Diagnosis</p>
-                                            <p className="font-medium">{selectedRecord.diagnosis || 'Not recorded'}</p>
+                                            <p className="text-sm text-muted-foreground">Chẩn đoán</p>
+                                            <p className="font-medium">{selectedRecord.diagnosis || 'Chưa ghi nhận'}</p>
                                         </div>
                                         <div className="col-span-2">
-                                            <p className="text-sm text-muted-foreground">Treatment</p>
-                                            <p className="font-medium">{selectedRecord.treatment || 'Not recorded'}</p>
+                                            <p className="text-sm text-muted-foreground">Điều trị</p>
+                                            <p className="font-medium">{selectedRecord.treatment || 'Chưa ghi nhận'}</p>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -299,23 +299,23 @@ export function MedicalRecords() {
                                 <TabsList className="grid w-full grid-cols-2">
                                     <TabsTrigger value="prescriptions" className="flex items-center">
                                         <Pill className="mr-2 h-4 w-4" />
-                                        Prescriptions
+                                        Đơn thuốc
                                     </TabsTrigger>
                                     <TabsTrigger value="lab-tests" className="flex items-center">
                                         <TestTube className="mr-2 h-4 w-4" />
-                                        Lab Tests
+                                        Xét nghiệm
                                     </TabsTrigger>
                                 </TabsList>
 
                                 <TabsContent value="prescriptions">
                                     <Card>
                                         <CardHeader>
-                                            <CardTitle>Prescribed Medications</CardTitle>
+                                            <CardTitle>Thuốc đã kê đơn</CardTitle>
                                         </CardHeader>
                                         <CardContent>
                                             {getRecordPrescriptions(selectedRecord.id).length === 0 ? (
                                                 <p className="text-muted-foreground text-center py-4">
-                                                    No prescriptions for this record
+                                                    Không có đơn thuốc cho hồ sơ này
                                                 </p>
                                             ) : (
                                                 <div className="space-y-4">
@@ -323,28 +323,28 @@ export function MedicalRecords() {
                                                         <div key={prescription.id} className="border rounded-lg p-4">
                                                             <div className="flex justify-between items-start">
                                                                 <div className="space-y-2">
-                                                                    <h4 className="font-medium">{prescription.medicine?.name || 'Unknown Medicine'}</h4>
+                                                                    <h4 className="font-medium">{prescription.medicine?.name || 'Thuốc không xác định'}</h4>
                                                                     <div className="grid grid-cols-3 gap-4 text-sm">
                                                                         <div>
-                                                                            <span className="text-muted-foreground">Dosage: </span>
-                                                                            <span>{prescription.dosage || 'Not specified'}</span>
+                                                                            <span className="text-muted-foreground">Liều dùng: </span>
+                                                                            <span>{prescription.dosage || 'Chưa chỉ định'}</span>
                                                                         </div>
                                                                         <div>
-                                                                            <span className="text-muted-foreground">Frequency: </span>
-                                                                            <span>{prescription.frequency || 'Not specified'}</span>
+                                                                            <span className="text-muted-foreground">Tần suất: </span>
+                                                                            <span>{prescription.frequency || 'Chưa chỉ định'}</span>
                                                                         </div>
                                                                         <div>
-                                                                            <span className="text-muted-foreground">Duration: </span>
-                                                                            <span>{prescription.duration || 'Not specified'}</span>
+                                                                            <span className="text-muted-foreground">Thời gian điều trị: </span>
+                                                                            <span>{prescription.duration || 'Chưa chỉ định'}</span>
                                                                         </div>
                                                                     </div>
                                                                     <p className="text-sm text-muted-foreground">
-                                                                        Prescribed by Dr. {prescription.medical_record?.doctor?.full_name || 'N/A'}
+                                                                        Kê đơn bởi Dr. {prescription.medical_record?.doctor?.full_name || 'N/A'}
                                                                     </p>
                                                                 </div>
                                                                 <Button variant="outline" size="sm">
                                                                     <Download className="h-4 w-4 mr-1" />
-                                                                    Print
+                                                                    In
                                                                 </Button>
                                                             </div>
                                                         </div>
@@ -358,12 +358,12 @@ export function MedicalRecords() {
                                 <TabsContent value="lab-tests">
                                     <Card>
                                         <CardHeader>
-                                            <CardTitle>Laboratory Tests</CardTitle>
+                                            <CardTitle>Xét nghiệm phòng lab</CardTitle>
                                         </CardHeader>
                                         <CardContent>
                                             {getRecordLabTests(selectedRecord.id).length === 0 ? (
                                                 <p className="text-muted-foreground text-center py-4">
-                                                    No lab tests for this record
+                                                    Không có xét nghiệm cho hồ sơ này
                                                 </p>
                                             ) : (
                                                 <div className="space-y-4">
@@ -377,21 +377,21 @@ export function MedicalRecords() {
                                                                     </div>
                                                                     <div className="grid grid-cols-2 gap-4 text-sm">
                                                                         <div>
-                                                                            <span className="text-muted-foreground">Result: </span>
-                                                                            <span className="font-medium">{test.result || 'Pending'}</span>
+                                                                            <span className="text-muted-foreground">Kết quả: </span>
+                                                                            <span className="font-medium">{test.result || 'Chờ xử lý'}</span>
                                                                         </div>
                                                                         <div>
-                                                                            <span className="text-muted-foreground">Test Date: </span>
+                                                                            <span className="text-muted-foreground">Ngày xét nghiệm: </span>
                                                                             <span>{test.test_date ? new Date(test.test_date).toLocaleDateString() : 'N/A'}</span>
                                                                         </div>
                                                                     </div>
                                                                     <p className="text-sm text-muted-foreground">
-                                                                        Ordered by Dr. {test.medical_record?.doctor?.full_name || 'N/A'}
+                                                                        Yêu cầu bởi Dr. {test.medical_record?.doctor?.full_name || 'N/A'}
                                                                     </p>
                                                                 </div>
                                                                 <Button variant="outline" size="sm">
                                                                     <Download className="h-4 w-4 mr-1" />
-                                                                    Download
+                                                                    Tải xuống
                                                                 </Button>
                                                             </div>
                                                         </div>

@@ -34,22 +34,22 @@ interface HospitalLayoutProps {
 }
 
 const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'patients', label: 'Patients', icon: Users },
-    { id: 'doctors', label: 'Doctors', icon: UserCheck },
-    { id: 'departments', label: 'Departments & Rooms', icon: Building2 },
-    { id: 'appointments', label: 'Appointments', icon: Calendar },
-    { id: 'records', label: 'Medical Records', icon: FileText },
-    { id: 'pharmacy', label: 'Pharmacy & Equipment', icon: Pill },
-    { id: 'payments', label: 'Payments & Insurance', icon: CreditCard },
-    { id: 'schedules', label: 'Work Schedules', icon: Clock },
-    { id: 'reports', label: 'Reports', icon: BarChart3 },
-    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard },
+    { id: 'patients', label: 'Bệnh nhân', icon: Users },
+    { id: 'doctors', label: 'Bác sĩ', icon: UserCheck },
+    { id: 'departments', label: 'Phòng ban & Phòng', icon: Building2 },
+    { id: 'appointments', label: 'Lịch hẹn', icon: Calendar },
+    { id: 'records', label: 'Hồ sơ bệnh án', icon: FileText },
+    { id: 'pharmacy', label: 'Nhà thuốc & Thiết bị', icon: Pill },
+    { id: 'payments', label: 'Thanh toán, Bảo hiểm', icon: CreditCard },
+    { id: 'schedules', label: 'Lịch làm việc', icon: Clock },
+    // { id: 'reports', label: 'Báo cáo', icon: BarChart3 },
+    // { id: 'settings', label: 'Cài đặt', icon: Settings },
 ];
 
 export function HospitalLayout({ children, activeModule, onModuleChange }: HospitalLayoutProps) {
     const [isDarkMode, setIsDarkMode] = useState(false);
-    const [language, setLanguage] = useState('EN');
+    const [language, setLanguage] = useState('VN');
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const toggleDarkMode = () => {
@@ -82,9 +82,9 @@ export function HospitalLayout({ children, activeModule, onModuleChange }: Hospi
                     <div className="h-16 flex items-center justify-between px-6 border-b border-sidebar-border">
                         <div className="flex items-center space-x-2">
                             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                                <span className="text-white font-bold">H+</span>
+                                <span className="text-white font-bold">VM</span>
                             </div>
-                            <span className="text-sidebar-foreground font-semibold">HealthCare</span>
+                            <span className="text-sidebar-foreground font-semibold">Vinmec</span>
                         </div>
                         <Button
                             variant="ghost"
@@ -144,7 +144,7 @@ export function HospitalLayout({ children, activeModule, onModuleChange }: Hospi
                         <div className="relative hidden md:block">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="Search patients, doctors, appointments..."
+                                placeholder="Tìm kiếm bệnh nhân, bác sĩ, lịch hẹn..."
                                 className="pl-10 w-80"
                             />
                         </div>
@@ -192,7 +192,7 @@ export function HospitalLayout({ children, activeModule, onModuleChange }: Hospi
                                     </Avatar>
                                     <div className="hidden sm:block text-left">
                                         <div className="text-sm">Dr. Admin</div>
-                                        <div className="text-xs text-muted-foreground">Administrator</div>
+                                        <div className="text-xs text-muted-foreground">Quản trị viên</div>
                                     </div>
                                     <ChevronDown className="h-4 w-4" />
                                 </Button>
@@ -200,14 +200,14 @@ export function HospitalLayout({ children, activeModule, onModuleChange }: Hospi
                             <DropdownMenuContent align="end">
                                 <DropdownMenuItem>
                                     <User className="mr-2 h-4 w-4" />
-                                    Profile
+                                    Hồ sơ cá nhân
                                 </DropdownMenuItem>
                                 <DropdownMenuItem>
                                     <Settings className="mr-2 h-4 w-4" />
-                                    Settings
+                                    Cài đặt
                                 </DropdownMenuItem>
                                 <DropdownMenuItem>
-                                    Logout
+                                    Đăng xuất
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>

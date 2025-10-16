@@ -152,7 +152,7 @@ export function Pharmacy() {
 
         // Kiểm tra validation cơ bản
         if (!newMedicine.name || !newMedicine.quantity || !newMedicine.unit_price) {
-            setAddMedicineError("Please fill in all required fields (Name, Quantity, Price).");
+            setAddMedicineError("Vui lòng điền tất cả các trường bắt buộc (Tên, Số lượng, Giá).");
             return;
         }
 
@@ -187,7 +187,7 @@ export function Pharmacy() {
             console.log('Medicine added successfully:', addedMedicine);
         } catch (error: any) {
             console.error('Error adding medicine:', error);
-            setAddMedicineError(`Failed to add medicine: ${error.message || 'Unknown error'}`);
+            setAddMedicineError(`Thêm thuốc thất bại: ${error.message || 'Lỗi không xác định'}`);
         }
     };
 
@@ -196,7 +196,7 @@ export function Pharmacy() {
 
         // Kiểm tra validation cơ bản
         if (!newEquipment.name || !newEquipment.quantity) {
-            setAddEquipmentError("Please fill in all required fields (Name, Quantity).");
+            setAddEquipmentError("Vui lòng điền tất cả các trường bắt buộc (Tên, Số lượng).");
             return;
         }
 
@@ -230,7 +230,7 @@ export function Pharmacy() {
             console.log('Equipment added successfully:', addedEquipment);
         } catch (error: any) {
             console.error('Error adding equipment:', error);
-            setAddEquipmentError(`Failed to add equipment: ${error.message || 'Unknown error'}`);
+            setAddEquipmentError(`Thêm thiết bị thất bại: ${error.message || 'Lỗi không xác định'}`);
         }
     };
 
@@ -266,22 +266,22 @@ export function Pharmacy() {
 
     const getExpiryBadge = (expiryDate: string | null) => {
         if (isExpired(expiryDate)) {
-            return <Badge variant="destructive">Expired</Badge>;
+            return <Badge variant="destructive">Đã hết hạn</Badge>;
         } else if (isExpiringSoon(expiryDate)) {
-            return <Badge variant="secondary">Expiring Soon</Badge>;
+            return <Badge variant="secondary">Sắp hết hạn</Badge>;
         }
-        return <Badge variant="default">Valid</Badge>;
+        return <Badge variant="default">Còn hiệu lực</Badge>;
     };
 
     const getStockBadge = (quantity: number | null, threshold: number = 20) => {
         if (quantity === null || quantity === undefined) {
-            return <Badge variant="outline">Unknown</Badge>;
+            return <Badge variant="outline">Không xác định</Badge>;
         } else if (quantity === 0) {
-            return <Badge variant="destructive">Out of Stock</Badge>;
+            return <Badge variant="destructive">Hết hàng</Badge>;
         } else if (quantity <= threshold) {
-            return <Badge variant="secondary">Low Stock</Badge>;
+            return <Badge variant="secondary">Hàng sắp hết</Badge>
         }
-        return <Badge variant="default">In Stock</Badge>;
+        return <Badge variant="default">Còn hàng</Badge>;
     };
 
     const getStatusBadge = (status: EquipmentStatus) => {
@@ -294,16 +294,16 @@ export function Pharmacy() {
     const loading = medicinesLoading || equipmentLoading;
 
     if (loading) {
-        return <div className="text-center py-10">Loading medicines and equipment...</div>;
+        return <div className="text-center py-10">Đang tải thuốc và thiết bị...</div>;
     }
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1>Pharmacy & Equipment</h1>
+                    <h1>Nhà thuốc & Thiết bị</h1>
                     <p className="text-muted-foreground">
-                        Manage medicines inventory and medical equipment
+                        Quản lý tồn kho thuốc và thiết bị y tế
                     </p>
                 </div>
             </div>
@@ -312,11 +312,11 @@ export function Pharmacy() {
                 <TabsList>
                     <TabsTrigger value="medicines" className="flex items-center">
                         <Pill className="mr-2 h-4 w-4" />
-                        Medicines
+                        Thuốc
                     </TabsTrigger>
                     <TabsTrigger value="equipment" className="flex items-center">
                         <Wrench className="mr-2 h-4 w-4" />
-                        Equipment
+                        Thiết bị
                     </TabsTrigger>
                 </TabsList>
 
@@ -326,13 +326,13 @@ export function Pharmacy() {
                             <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
                                 <CardTitle className="flex items-center">
                                     <Package className="mr-2 h-5 w-5" />
-                                    Medicine Inventory ({filteredMedicines.length})
+                                    Tồn kho thuốc ({filteredMedicines.length})
                                 </CardTitle>
                                 <div className="flex items-center space-x-2">
                                     <div className="relative">
                                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                                         <Input
-                                            placeholder="Search medicines..."
+                                            placeholder="Tìm kiếm thuốc..."
                                             value={searchTerm}
                                             onChange={(e) => setSearchTerm(e.target.value)}
                                             className="pl-8 w-64"
@@ -345,55 +345,55 @@ export function Pharmacy() {
                                         <DialogTrigger asChild>
                                             <Button>
                                                 <Plus className="mr-2 h-4 w-4" />
-                                                Add Medicine
+                                                Thêm thuốc
                                             </Button>
                                         </DialogTrigger>
                                         <DialogContent>
                                             <DialogHeader>
-                                                <DialogTitle>Add New Medicine</DialogTitle>
+                                                <DialogTitle>Thêm thuốc mới</DialogTitle>
                                             </DialogHeader>
                                             <div className="grid grid-cols-2 gap-4 py-4">
                                                 <div className="space-y-2">
-                                                    <Label htmlFor="name">Medicine Name</Label>
+                                                    <Label htmlFor="name">Tên thuốc</Label>
                                                     <Input
                                                         id="name"
-                                                        placeholder="Enter medicine name"
+                                                        placeholder="Nhập tên thuốc"
                                                         value={newMedicine.name}
                                                         onChange={handleMedicineInputChange}
                                                     />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <Label htmlFor="quantity">Quantity</Label>
+                                                    <Label htmlFor="quantity">Số lượng</Label>
                                                     <Input
                                                         id="quantity"
                                                         type="number"
-                                                        placeholder="Enter quantity"
+                                                        placeholder="Nhập số lượng"
                                                         value={newMedicine.quantity}
                                                         onChange={handleMedicineInputChange}
                                                     />
                                                 </div>
                                                 <div className="col-span-2 space-y-2">
-                                                    <Label htmlFor="description">Description</Label>
+                                                    <Label htmlFor="description">Mô tả</Label>
                                                     <Input
                                                         id="description"
-                                                        placeholder="Enter description"
+                                                        placeholder="Nhập mô tả"
                                                         value={newMedicine.description}
                                                         onChange={handleMedicineInputChange}
                                                     />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <Label htmlFor="unit_price">Price ($)</Label>
+                                                    <Label htmlFor="unit_price">Giá ($)</Label>
                                                     <Input
                                                         id="unit_price"
                                                         type="number"
                                                         step="0.01"
-                                                        placeholder="Enter price"
+                                                        placeholder="Nhập giá"
                                                         value={newMedicine.unit_price}
                                                         onChange={handleMedicineInputChange}
                                                     />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <Label htmlFor="expiry_date">Expiry Date</Label>
+                                                    <Label htmlFor="expiry_date">Ngày hết hạn</Label>
                                                     <Input
                                                         id="expiry_date"
                                                         type="date"
@@ -407,10 +407,10 @@ export function Pharmacy() {
                                             )}
                                             <div className="flex justify-end space-x-2">
                                                 <Button variant="outline" onClick={() => setIsAddMedicineDialogOpen(false)}>
-                                                    Cancel
+                                                    Hủy
                                                 </Button>
                                                 <Button onClick={handleAddMedicine}>
-                                                    Add Medicine
+                                                    Thêm thuốc
                                                 </Button>
                                             </div>
                                         </DialogContent>
@@ -423,20 +423,20 @@ export function Pharmacy() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Medicine Name</TableHead>
-                                            <TableHead>Description</TableHead>
-                                            <TableHead>Quantity</TableHead>
-                                            <TableHead>Price</TableHead>
-                                            <TableHead>Expiry Date</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Actions</TableHead>
+                                            <TableHead>Tên thuốc</TableHead>
+                                            <TableHead>Mô tả</TableHead>
+                                            <TableHead>Số lượng</TableHead>
+                                            <TableHead>Giá</TableHead>
+                                            <TableHead>Ngày hết hạn</TableHead>
+                                            <TableHead>Trạng thái</TableHead>
+                                            <TableHead>Hành động</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {filteredMedicines.map((medicine) => (
                                             <TableRow key={medicine.id}>
                                                 <TableCell className="font-medium">{medicine.name}</TableCell>
-                                                <TableCell className="max-w-40 truncate">{medicine.description || 'No description'}</TableCell>
+                                                <TableCell className="max-w-40 truncate">{medicine.description || 'Không có mô tả'}</TableCell>
                                                 <TableCell>
                                                     <div className="flex items-center space-x-2">
                                                         <span>{medicine.quantity || 'N/A'}</span>
@@ -448,7 +448,7 @@ export function Pharmacy() {
                                                 <TableCell>${medicine.unit_price || 'N/A'}</TableCell>
                                                 <TableCell>
                                                     <div className="flex items-center space-x-2">
-                                                        <span>{medicine.expiry_date ? new Date(medicine.expiry_date).toLocaleDateString() : 'No expiry date'}</span>
+                                                        <span>{medicine.expiry_date ? new Date(medicine.expiry_date).toLocaleDateString() : 'Không có ngày hết hạn'}</span>
                                                         {isExpiringSoon(medicine.expiry_date.toString()) && (
                                                             <AlertTriangle className="h-4 w-4 text-red-500" />
                                                         )}
@@ -475,7 +475,7 @@ export function Pharmacy() {
                                         {filteredMedicines.length === 0 && (
                                             <TableRow>
                                                 <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
-                                                    No medicines found matching your criteria.
+                                                    Không tìm thấy thuốc nào theo điều kiện tìm kiếm.
                                                 </TableCell>
                                             </TableRow>
                                         )}
