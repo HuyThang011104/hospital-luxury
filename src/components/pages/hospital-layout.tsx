@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react';
+import { AuthContext } from '@/contexts/auth-context';
 import {
     LayoutDashboard,
     Users,
@@ -9,7 +10,7 @@ import {
     Pill,
     CreditCard,
     Clock,
-    BarChart3,
+
     Settings,
     Search,
     Bell,
@@ -34,23 +35,23 @@ interface HospitalLayoutProps {
 }
 
 const menuItems = [
-    { id: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard },
-    { id: 'patients', label: 'Bệnh nhân', icon: Users },
-    { id: 'doctors', label: 'Bác sĩ', icon: UserCheck },
-    { id: 'departments', label: 'Phòng ban & Phòng', icon: Building2 },
-    { id: 'appointments', label: 'Lịch hẹn', icon: Calendar },
-    { id: 'records', label: 'Hồ sơ bệnh án', icon: FileText },
-    { id: 'pharmacy', label: 'Nhà thuốc & Thiết bị', icon: Pill },
-    { id: 'payments', label: 'Thanh toán, Bảo hiểm', icon: CreditCard },
-    { id: 'schedules', label: 'Lịch làm việc', icon: Clock },
-    // { id: 'reports', label: 'Báo cáo', icon: BarChart3 },
-    // { id: 'settings', label: 'Cài đặt', icon: Settings },
+    { id: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard, roles: ['admin'] },
+    { id: 'patients', label: 'Bệnh nhân', icon: Users, roles: ['admin'] },
+    { id: 'doctors', label: 'Bác sĩ', icon: UserCheck, roles: ['admin'] },
+    { id: 'departments', label: 'Phòng ban & Phòng', icon: Building2, roles: ['admin', 'facility_manager'] },
+    { id: 'appointments', label: 'Lịch hẹn', icon: Calendar, roles: ['admin'] },
+    { id: 'records', label: 'Hồ sơ bệnh án', icon: FileText, roles: ['admin'] },
+    { id: 'pharmacy', label: 'Nhà thuốc & Thiết bị', icon: Pill, roles: ['admin', 'pharmacist'] },
+    { id: 'payments', label: 'Thanh toán, Bảo hiểm', icon: CreditCard, roles: ['admin', 'cashier'] },
+    { id: 'schedules', label: 'Lịch làm việc', icon: Clock, roles: ['admin'] },
+    { id: 'settings', label: 'Cài đặt', icon: Settings, roles: ['admin'] },
 ];
 
 export function HospitalLayout({ children, activeModule, onModuleChange }: HospitalLayoutProps) {
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [language, setLanguage] = useState('VN');
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const auth = useContext(AuthContext);
 
     const toggleDarkMode = () => {
         setIsDarkMode(!isDarkMode);
@@ -98,30 +99,32 @@ export function HospitalLayout({ children, activeModule, onModuleChange }: Hospi
 
                     {/* Navigation */}
                     <nav className="flex-1 px-4 py-4 space-y-1">
-                        {menuItems.map((item) => {
-                            const Icon = item.icon;
-                            const isActive = activeModule === item.id;
+                        {menuItems
+                            .filter(item => item.roles.includes(auth?.user?.role || ''))
+                            .map((item) => {
+                                const Icon = item.icon;
+                                const isActive = activeModule === item.id;
 
-                            return (
-                                <button
-                                    key={item.id}
-                                    onClick={() => {
-                                        onModuleChange(item.id);
-                                        setSidebarOpen(false);
-                                    }}
-                                    className={`
-                    w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors
-                    ${isActive
-                                            ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                                            : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-                                        }
-                  `}
-                                >
-                                    <Icon className="h-5 w-5" />
-                                    <span>{item.label}</span>
-                                </button>
-                            );
-                        })}
+                                return (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => {
+                                            onModuleChange(item.id);
+                                            setSidebarOpen(false);
+                                        }}
+                                        className={`
+                        w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors
+                        ${isActive
+                                                ? 'bg-sidebar-primary text-sidebar-primary-foreground'
+                                                : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                                            }
+                      `}
+                                    >
+                                        <Icon className="h-5 w-5" />
+                                        <span>{item.label}</span>
+                                    </button>
+                                );
+                            })}
                     </nav>
                 </div>
             </div>
@@ -188,11 +191,18 @@ export function HospitalLayout({ children, activeModule, onModuleChange }: Hospi
                                 <Button variant="ghost" className="flex items-center space-x-2 p-2">
                                     <Avatar className="h-8 w-8">
                                         <AvatarImage src="/api/placeholder/32/32" />
-                                        <AvatarFallback>AD</AvatarFallback>
+                                        <AvatarFallback>
+                                            {auth?.user?.full_name?.substring(0, 2).toUpperCase() || 'AD'}
+                                        </AvatarFallback>
                                     </Avatar>
                                     <div className="hidden sm:block text-left">
-                                        <div className="text-sm">Dr. Admin</div>
-                                        <div className="text-xs text-muted-foreground">Quản trị viên</div>
+                                        <div className="text-sm">{auth?.user?.full_name || 'Admin User'}</div>
+                                        <div className="text-xs text-muted-foreground">
+                                            {auth?.user?.role === 'admin' ? 'Quản trị viên' :
+                                                auth?.user?.role === 'pharmacist' ? 'Dược sĩ' :
+                                                    auth?.user?.role === 'facility_manager' ? 'Quản lý cơ sở' :
+                                                        auth?.user?.role === 'cashier' ? 'Thu ngân' : 'Người dùng'}
+                                        </div>
                                     </div>
                                     <ChevronDown className="h-4 w-4" />
                                 </Button>
@@ -206,7 +216,7 @@ export function HospitalLayout({ children, activeModule, onModuleChange }: Hospi
                                     <Settings className="mr-2 h-4 w-4" />
                                     Cài đặt
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => auth?.logout()}>
                                     Đăng xuất
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
