@@ -33,6 +33,23 @@ interface NewEquipmentState {
     status: EquipmentStatus;
 }
 
+// Interface cho state của form sửa thuốc
+interface EditMedicineState {
+    name: string;
+    description: string;
+    quantity: string;
+    unit_price: string;
+    expiry_date: string;
+}
+
+// Interface cho state của form sửa thiết bị
+interface EditEquipmentState {
+    name: string;
+    quantity: string;
+    location: string;
+    status: EquipmentStatus;
+}
+
 export function Pharmacy() {
     const [medicines, setMedicines] = useState<IMedicine[]>([]);
     const [medicinesLoading, setMedicinesLoading] = useState(true);
@@ -45,6 +62,14 @@ export function Pharmacy() {
     const [isAddEquipmentDialogOpen, setIsAddEquipmentDialogOpen] = useState(false);
     const [addMedicineError, setAddMedicineError] = useState<string | null>(null);
     const [addEquipmentError, setAddEquipmentError] = useState<string | null>(null);
+    
+    // Edit dialog states
+    const [isEditMedicineDialogOpen, setIsEditMedicineDialogOpen] = useState(false);
+    const [isEditEquipmentDialogOpen, setIsEditEquipmentDialogOpen] = useState(false);
+    const [editingMedicine, setEditingMedicine] = useState<IMedicine | null>(null);
+    const [editingEquipment, setEditingEquipment] = useState<IEquipment | null>(null);
+    const [editMedicineError, setEditMedicineError] = useState<string | null>(null);
+    const [editEquipmentError, setEditEquipmentError] = useState<string | null>(null);
 
     const [newMedicine, setNewMedicine] = useState<NewMedicineState>({
         name: '',
@@ -55,6 +80,22 @@ export function Pharmacy() {
     });
 
     const [newEquipment, setNewEquipment] = useState<NewEquipmentState>({
+        name: '',
+        quantity: '',
+        location: '',
+        status: 'Available'
+    });
+
+    // Edit form states
+    const [editMedicine, setEditMedicine] = useState<EditMedicineState>({
+        name: '',
+        description: '',
+        quantity: '',
+        unit_price: '',
+        expiry_date: ''
+    });
+
+    const [editEquipment, setEditEquipment] = useState<EditEquipmentState>({
         name: '',
         quantity: '',
         location: '',
@@ -92,6 +133,36 @@ export function Pharmacy() {
     // Hàm cho Select Component cho thiết bị
     const handleEquipmentSelectChange = (id: keyof NewEquipmentState, value: string) => {
         setNewEquipment(prev => ({ ...prev, [id]: value as EquipmentStatus }));
+    };
+
+    // --- EDIT HANDLERS ---
+
+    // Hàm cập nhật state form sửa thuốc
+    const handleEditMedicineInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { id, value } = e.target;
+        setEditMedicine(prev => ({
+            ...prev,
+            [id]: value
+        }));
+    };
+
+    // Hàm cho Select Component trong form sửa thuốc
+    const handleEditMedicineSelectChange = (id: keyof EditMedicineState, value: string) => {
+        setEditMedicine(prev => ({ ...prev, [id]: value }));
+    };
+
+    // Hàm cập nhật state form sửa thiết bị
+    const handleEditEquipmentInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { id, value } = e.target;
+        setEditEquipment(prev => ({
+            ...prev,
+            [id]: value
+        }));
+    };
+
+    // Hàm cho Select Component trong form sửa thiết bị
+    const handleEditEquipmentSelectChange = (id: keyof EditEquipmentState, value: string) => {
+        setEditEquipment(prev => ({ ...prev, [id]: value as EquipmentStatus }));
     };
 
     const fetchMedicines = async () => {
@@ -145,6 +216,128 @@ export function Pharmacy() {
             status: 'Available'
         });
         setAddEquipmentError(null);
+    };
+
+    // --- EDIT FUNCTIONS ---
+
+    const openEditMedicineDialog = (medicine: IMedicine) => {
+        setEditingMedicine(medicine);
+        setEditMedicine({
+            name: medicine.name,
+            description: medicine.description || '',
+            quantity: medicine.quantity?.toString() || '',
+            unit_price: medicine.unit_price?.toString() || '',
+            expiry_date: medicine.expiry_date?.toString().split('T')[0] || ''
+        });
+        setEditMedicineError(null);
+        setIsEditMedicineDialogOpen(true);
+    };
+
+    const handleEditMedicine = async () => {
+        if (!editingMedicine) return;
+
+        setEditMedicineError(null);
+
+        // Kiểm tra validation
+        if (!editMedicine.name || !editMedicine.quantity || !editMedicine.unit_price) {
+            setEditMedicineError("Vui lòng điền tất cả các trường bắt buộc (Tên, Số lượng, Giá).");
+            return;
+        }
+
+        try {
+            const medicineDataToUpdate = {
+                name: editMedicine.name,
+                description: editMedicine.description || null,
+                quantity: parseInt(editMedicine.quantity, 10) || null,
+                unit_price: parseFloat(editMedicine.unit_price) || null,
+                expiry_date: editMedicine.expiry_date ? new Date(editMedicine.expiry_date).toISOString().split('T')[0] : null
+            };
+
+            const { data, error } = await supabase
+                .from('medicine')
+                .update(medicineDataToUpdate)
+                .eq('id', editingMedicine.id)
+                .select('*');
+
+            if (error) {
+                console.error('Supabase error updating medicine:', error);
+                throw new Error(error.message);
+            }
+
+            const updatedMedicine = data?.[0] as IMedicine;
+            if (updatedMedicine) {
+                setMedicines(prevMedicines => 
+                    prevMedicines.map(m => m.id === editingMedicine.id ? updatedMedicine : m)
+                );
+            }
+
+            setIsEditMedicineDialogOpen(false);
+            setEditingMedicine(null);
+
+            console.log('Medicine updated successfully:', updatedMedicine);
+        } catch (error: any) {
+            console.error('Error updating medicine:', error);
+            setEditMedicineError(`Cập nhật thuốc thất bại: ${error.message || 'Lỗi không xác định'}`);
+        }
+    };
+
+    const openEditEquipmentDialog = (equipment: IEquipment) => {
+        setEditingEquipment(equipment);
+        setEditEquipment({
+            name: equipment.name,
+            quantity: equipment.quantity?.toString() || '',
+            location: equipment.location || '',
+            status: equipment.status
+        });
+        setEditEquipmentError(null);
+        setIsEditEquipmentDialogOpen(true);
+    };
+
+    const handleEditEquipment = async () => {
+        if (!editingEquipment) return;
+
+        setEditEquipmentError(null);
+
+        // Kiểm tra validation
+        if (!editEquipment.name || !editEquipment.quantity) {
+            setEditEquipmentError("Vui lòng điền tất cả các trường bắt buộc (Tên, Số lượng).");
+            return;
+        }
+
+        try {
+            const equipmentDataToUpdate = {
+                name: editEquipment.name,
+                quantity: parseInt(editEquipment.quantity, 10) || null,
+                location: editEquipment.location || null,
+                status: editEquipment.status
+            };
+
+            const { data, error } = await supabase
+                .from('equipment')
+                .update(equipmentDataToUpdate)
+                .eq('id', editingEquipment.id)
+                .select('*');
+
+            if (error) {
+                console.error('Supabase error updating equipment:', error);
+                throw new Error(error.message);
+            }
+
+            const updatedEquipment = data?.[0] as IEquipment;
+            if (updatedEquipment) {
+                setEquipment(prevEquipment => 
+                    prevEquipment.map(e => e.id === editingEquipment.id ? updatedEquipment : e)
+                );
+            }
+
+            setIsEditEquipmentDialogOpen(false);
+            setEditingEquipment(null);
+
+            console.log('Equipment updated successfully:', updatedEquipment);
+        } catch (error: any) {
+            console.error('Error updating equipment:', error);
+            setEditEquipmentError(`Cập nhật thiết bị thất bại: ${error.message || 'Lỗi không xác định'}`);
+        }
     };
 
     const handleAddMedicine = async () => {
@@ -415,6 +608,82 @@ export function Pharmacy() {
                                             </div>
                                         </DialogContent>
                                     </Dialog>
+
+                                    {/* --- EDIT MEDICINE DIALOG --- */}
+                                    <Dialog open={isEditMedicineDialogOpen} onOpenChange={(open) => {
+                                        setIsEditMedicineDialogOpen(open);
+                                        if (!open) {
+                                            setEditingMedicine(null);
+                                            setEditMedicineError(null);
+                                        }
+                                    }}>
+                                        <DialogContent>
+                                            <DialogHeader>
+                                                <DialogTitle>Sửa thông tin thuốc</DialogTitle>
+                                            </DialogHeader>
+                                            <div className="grid grid-cols-2 gap-4 py-4">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="edit_name">Tên thuốc</Label>
+                                                    <Input
+                                                        id="edit_name"
+                                                        placeholder="Nhập tên thuốc"
+                                                        value={editMedicine.name}
+                                                        onChange={handleEditMedicineInputChange}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="edit_quantity">Số lượng</Label>
+                                                    <Input
+                                                        id="edit_quantity"
+                                                        type="number"
+                                                        placeholder="Nhập số lượng"
+                                                        value={editMedicine.quantity}
+                                                        onChange={handleEditMedicineInputChange}
+                                                    />
+                                                </div>
+                                                <div className="col-span-2 space-y-2">
+                                                    <Label htmlFor="edit_description">Mô tả</Label>
+                                                    <Input
+                                                        id="edit_description"
+                                                        placeholder="Nhập mô tả"
+                                                        value={editMedicine.description}
+                                                        onChange={handleEditMedicineInputChange}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="edit_unit_price">Giá ($)</Label>
+                                                    <Input
+                                                        id="edit_unit_price"
+                                                        type="number"
+                                                        step="0.01"
+                                                        placeholder="Nhập giá"
+                                                        value={editMedicine.unit_price}
+                                                        onChange={handleEditMedicineInputChange}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="edit_expiry_date">Ngày hết hạn</Label>
+                                                    <Input
+                                                        id="edit_expiry_date"
+                                                        type="date"
+                                                        value={editMedicine.expiry_date}
+                                                        onChange={handleEditMedicineInputChange}
+                                                    />
+                                                </div>
+                                            </div>
+                                            {editMedicineError && (
+                                                <p className="text-red-500 text-sm mt-2">{editMedicineError}</p>
+                                            )}
+                                            <div className="flex justify-end space-x-2">
+                                                <Button variant="outline" onClick={() => setIsEditMedicineDialogOpen(false)}>
+                                                    Hủy
+                                                </Button>
+                                                <Button onClick={handleEditMedicine}>
+                                                    Cập nhật thuốc
+                                                </Button>
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
                                 </div>
                             </div>
                         </CardHeader>
@@ -462,7 +731,7 @@ export function Pharmacy() {
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex space-x-1">
-                                                        <Button variant="ghost" size="sm">
+                                                        <Button variant="ghost" size="sm" onClick={() => openEditMedicineDialog(medicine)}>
                                                             <Edit className="h-4 w-4" />
                                                         </Button>
                                                         <Button variant="ghost" size="sm">
@@ -589,6 +858,78 @@ export function Pharmacy() {
                                             </div>
                                         </DialogContent>
                                     </Dialog>
+
+                                    {/* --- EDIT EQUIPMENT DIALOG --- */}
+                                    <Dialog open={isEditEquipmentDialogOpen} onOpenChange={(open) => {
+                                        setIsEditEquipmentDialogOpen(open);
+                                        if (!open) {
+                                            setEditingEquipment(null);
+                                            setEditEquipmentError(null);
+                                        }
+                                    }}>
+                                        <DialogContent>
+                                            <DialogHeader>
+                                                <DialogTitle>Sửa thông tin thiết bị</DialogTitle>
+                                            </DialogHeader>
+                                            <div className="grid grid-cols-2 gap-4 py-4">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="edit_eq_name">Tên thiết bị</Label>
+                                                    <Input
+                                                        id="edit_eq_name"
+                                                        placeholder="Nhập tên thiết bị"
+                                                        value={editEquipment.name}
+                                                        onChange={handleEditEquipmentInputChange}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="edit_eq_quantity">Số lượng</Label>
+                                                    <Input
+                                                        id="edit_eq_quantity"
+                                                        type="number"
+                                                        placeholder="Nhập số lượng"
+                                                        value={editEquipment.quantity}
+                                                        onChange={handleEditEquipmentInputChange}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="edit_eq_location">Vị trí</Label>
+                                                    <Input
+                                                        id="edit_eq_location"
+                                                        placeholder="Nhập vị trí"
+                                                        value={editEquipment.location}
+                                                        onChange={handleEditEquipmentInputChange}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="edit_eq_status">Trạng thái</Label>
+                                                    <Select
+                                                        value={editEquipment.status}
+                                                        onValueChange={(value) => handleEditEquipmentSelectChange('status', value as EquipmentStatus)}
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Chọn trạng thái" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="Available">Available</SelectItem>
+                                                            <SelectItem value="In_Use">In Use</SelectItem>
+                                                            <SelectItem value="Maintenance">Maintenance</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            </div>
+                                            {editEquipmentError && (
+                                                <p className="text-red-500 text-sm mt-2">{editEquipmentError}</p>
+                                            )}
+                                            <div className="flex justify-end space-x-2">
+                                                <Button variant="outline" onClick={() => setIsEditEquipmentDialogOpen(false)}>
+                                                    Hủy
+                                                </Button>
+                                                <Button onClick={handleEditEquipment}>
+                                                    Cập nhật thiết bị
+                                                </Button>
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
                                 </div>
                             </div>
                         </CardHeader>
@@ -620,7 +961,7 @@ export function Pharmacy() {
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex space-x-1">
-                                                        <Button variant="ghost" size="sm">
+                                                        <Button variant="ghost" size="sm" onClick={() => openEditEquipmentDialog(equipment)}>
                                                             <Edit className="h-4 w-4" />
                                                         </Button>
                                                         <Button variant="ghost" size="sm">

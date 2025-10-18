@@ -29,6 +29,17 @@ interface NewDoctorState {
     status: DoctorStatus;
 }
 
+// Interface cho state của form sửa bác sĩ
+interface EditDoctorState {
+    full_name: string;
+    username: string;
+    specialty: string;
+    phone: string;
+    email: string;
+    address: string;
+    status: DoctorStatus;
+}
+
 export function Doctors() {
     const [doctors, setDoctors] = useState<IDoctor[]>([]);
     const [certificates, setCertificates] = useState<ICertificate[]>([]);
@@ -38,6 +49,22 @@ export function Doctors() {
     const [statusFilter, setStatusFilter] = useState('All');
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [addDoctorError, setAddDoctorError] = useState<string | null>(null);
+
+    // Edit dialog states
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [editingDoctor, setEditingDoctor] = useState<IDoctor | null>(null);
+    const [editDoctorError, setEditDoctorError] = useState<string | null>(null);
+
+    // Edit form state
+    const [editDoctor, setEditDoctor] = useState<EditDoctorState>({
+        full_name: '',
+        username: '',
+        specialty: '',
+        phone: '',
+        email: '',
+        address: '',
+        status: 'Active',
+    });
 
     // Cập nhật state newDoctor để bao gồm tất cả các trường trong form
     const [newDoctor, setNewDoctor] = useState<NewDoctorState>({
@@ -62,6 +89,98 @@ export function Doctors() {
     // Hàm cho Select Component (thường có API khác)
     const handleSelectChange = (id: keyof NewDoctorState, value: string) => {
         setNewDoctor(prev => ({ ...prev, [id]: value }));
+    };
+
+    // Hàm cập nhật state form sửa
+    const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { id, value } = e.target;
+        setEditDoctor(prev => ({
+            ...prev,
+            [id]: id === 'experience' ? parseInt(value) || '' : value
+        }));
+    };
+
+    // Hàm cho Select Component trong form sửa
+    const handleEditSelectChange = (id: keyof EditDoctorState, value: string) => {
+        setEditDoctor(prev => ({ ...prev, [id]: value }));
+    };
+
+    // --- EDIT DOCTOR LOGIC ---
+
+    const openEditDialog = (doctor: IDoctor) => {
+        setEditingDoctor(doctor);
+        setEditDoctor({
+            full_name: doctor.full_name,
+            username: doctor.username,
+            specialty: doctor.specialty_id?.toString() || '',
+            phone: doctor.phone || '',
+            email: doctor.email || '',
+            address: doctor.address || '',
+            status: doctor.status,
+        });
+        setEditDoctorError(null);
+        setIsEditDialogOpen(true);
+    };
+
+    const handleEditDoctor = async () => {
+        if (!editingDoctor) return;
+
+        setEditDoctorError(null);
+
+        // Kiểm tra validation cơ bản
+        if (!editDoctor.full_name || !editDoctor.username || !editDoctor.specialty || !editDoctor.email) {
+            setEditDoctorError("Vui lòng điền tất cả các trường bắt buộc (Họ tên, Tên đăng nhập, Chuyên khoa, Email).");
+            return;
+        }
+
+        try {
+            // 1. Chuẩn bị dữ liệu để cập nhật
+            const { specialty, ...baseDoctorData } = editDoctor;
+
+            // Chuyển đổi 'On Leave' thành 'On_Leave' để khớp với ENUM của DB
+            const statusForDB = (
+                (baseDoctorData.status as string) === 'On Leave'
+                    ? 'On_Leave'
+                    : baseDoctorData.status
+            ) as DoctorStatus;
+
+            const doctorDataToUpdate = {
+                ...baseDoctorData,
+                specialty_id: parseInt(specialty, 10),
+                status: statusForDB,
+            };
+
+            const { data, error } = await supabase
+                .from('doctor')
+                .update(doctorDataToUpdate)
+                .eq('id', editingDoctor.id)
+                .select(`
+                    id, specialty_id, full_name, username, phone, email, address, status,
+                    specialty ( id, name, description )
+                `);
+
+            if (error) {
+                console.error('Supabase error updating doctor:', error);
+                throw new Error(error.message);
+            }
+
+            const updatedDoctor = data[0] as unknown as IDoctor;
+
+            // Cập nhật danh sách bác sĩ
+            setDoctors(prevDoctors =>
+                prevDoctors.map(d => d.id === editingDoctor.id ? updatedDoctor : d)
+            );
+
+            // Đóng dialog và reset form
+            setIsEditDialogOpen(false);
+            setEditingDoctor(null);
+
+            console.log('Doctor updated successfully:', updatedDoctor);
+
+        } catch (error: any) {
+            console.error('Error updating doctor:', error);
+            setEditDoctorError(`Cập nhật bác sĩ thất bại: ${error.message || 'Lỗi không xác định'}`);
+        }
     };
 
     // --- FETCH DATA ---
@@ -357,6 +476,120 @@ export function Doctors() {
                         </div>
                     </DialogContent>
                 </Dialog>
+
+                {/* --- EDIT DOCTOR DIALOG --- */}
+                <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+                    setIsEditDialogOpen(open);
+                    if (!open) {
+                        setEditingDoctor(null);
+                        setEditDoctorError(null);
+                    }
+                }}>
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle>Sửa thông tin bác sĩ</DialogTitle>
+                        </DialogHeader>
+                        <div className="grid grid-cols-2 gap-4 py-4">
+                            {/* Full Name */}
+                            <div className="space-y-2">
+                                <Label htmlFor="edit_full_name">Họ tên</Label>
+                                <Input
+                                    id="edit_full_name"
+                                    placeholder="Bác sĩ Nguyễn Văn A"
+                                    value={editDoctor.full_name}
+                                    onChange={handleEditInputChange}
+                                />
+                            </div>
+                            {/* Username */}
+                            <div className="space-y-2">
+                                <Label htmlFor="edit_username">Tên đăng nhập</Label>
+                                <Input
+                                    id="edit_username"
+                                    placeholder="nguyen.van.a"
+                                    value={editDoctor.username}
+                                    onChange={handleEditInputChange}
+                                />
+                            </div>
+                            {/* Specialty */}
+                            <div className="space-y-2">
+                                <Label htmlFor="edit_specialty">Chuyên khoa</Label>
+                                <Select
+                                    value={editDoctor.specialty}
+                                    onValueChange={(val) => handleEditSelectChange('specialty', val)}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Chọn chuyên khoa" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {uniqueSpecialties.map(s => (
+                                            <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            {/* Phone Number */}
+                            <div className="space-y-2">
+                                <Label htmlFor="edit_phone">Số điện thoại</Label>
+                                <Input
+                                    id="edit_phone"
+                                    placeholder="Nhập số điện thoại"
+                                    value={editDoctor.phone}
+                                    onChange={handleEditInputChange}
+                                />
+                            </div>
+                            {/* Email */}
+                            <div className="space-y-2">
+                                <Label htmlFor="edit_email">Email</Label>
+                                <Input
+                                    id="edit_email"
+                                    type="email"
+                                    placeholder="Nhập địa chỉ email"
+                                    value={editDoctor.email}
+                                    onChange={handleEditInputChange}
+                                />
+                            </div>
+                            {/* Address */}
+                            <div className="space-y-2">
+                                <Label htmlFor="edit_address">Địa chỉ</Label>
+                                <Input
+                                    id="edit_address"
+                                    placeholder="123 Đường chính"
+                                    value={editDoctor.address}
+                                    onChange={handleEditInputChange}
+                                />
+                            </div>
+
+                            {/* Status */}
+                            <div className="space-y-2">
+                                <Label htmlFor="edit_status">Trạng thái</Label>
+                                <Select
+                                    value={editDoctor.status}
+                                    onValueChange={(val) => handleEditSelectChange('status', val as DoctorStatus)}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Chọn trạng thái" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Active">Đang làm việc</SelectItem>
+                                        <SelectItem value="On_Leave">Nghỉ phép</SelectItem>
+                                        <SelectItem value="Inactive">Không hoạt động</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        {editDoctorError && (
+                            <p className="text-red-500 text-sm mt-2">{editDoctorError}</p>
+                        )}
+                        <div className="flex justify-end space-x-2">
+                            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                                Hủy
+                            </Button>
+                            <Button onClick={handleEditDoctor}>
+                                Cập nhật thông tin
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
             {/* --- TABS --- */}
             <Tabs defaultValue="doctors" className="space-y-4">
@@ -457,7 +690,7 @@ export function Doctors() {
                                                         <Button variant="ghost" size="sm" title="View">
                                                             <Eye className="h-4 w-4" />
                                                         </Button>
-                                                        <Button variant="ghost" size="sm" title="Edit">
+                                                        <Button variant="ghost" size="sm" title="Edit" onClick={() => openEditDialog(doctor)}>
                                                             <Edit className="h-4 w-4" />
                                                         </Button>
                                                         <Button variant="ghost" size="sm" title="Delete">

@@ -10,9 +10,11 @@ import { Textarea } from '../ui/textarea';
 import { Separator } from '../ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
-import { Settings, User, Bell, Shield, Database, Palette, Save } from 'lucide-react';
+import { Settings, User, Save } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
 
 export function SettingsPage() {
+    const { user } = useAuth()
     const [notifications, setNotifications] = useState({
         email: true,
         sms: false,
@@ -40,12 +42,12 @@ export function SettingsPage() {
             </div>
 
             <Tabs defaultValue="profile" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-6">
+                <TabsList className="grid grid-cols-2">
                     <TabsTrigger value="profile" className="flex items-center">
                         <User className="mr-2 h-4 w-4" />
                         Profile
                     </TabsTrigger>
-                    <TabsTrigger value="notifications" className="flex items-center">
+                    {/* <TabsTrigger value="notifications" className="flex items-center">
                         <Bell className="mr-2 h-4 w-4" />
                         Notifications
                     </TabsTrigger>
@@ -60,7 +62,7 @@ export function SettingsPage() {
                     <TabsTrigger value="appearance" className="flex items-center">
                         <Palette className="mr-2 h-4 w-4" />
                         Appearance
-                    </TabsTrigger>
+                    </TabsTrigger> */}
                     <TabsTrigger value="general" className="flex items-center">
                         <Settings className="mr-2 h-4 w-4" />
                         General
@@ -89,46 +91,28 @@ export function SettingsPage() {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="firstName">First Name</Label>
-                                        <Input id="firstName" defaultValue="John" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="lastName">Last Name</Label>
-                                        <Input id="lastName" defaultValue="Admin" />
+                                        <Label htmlFor="firstName">Họ và tên</Label>
+                                        <Input id="firstName" defaultValue={user?.full_name} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="email">Email</Label>
-                                        <Input id="email" type="email" defaultValue="admin@hospital.com" />
+                                        <Input id="email" type="email" defaultValue={user?.email} />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="phone">Phone</Label>
-                                        <Input id="phone" defaultValue="+1 (555) 123-4567" />
+                                        <Label htmlFor="phone">Số điện thoại</Label>
+                                        <Input id="phone" defaultValue={user?.phone_number} />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="department">Department</Label>
-                                        <Select defaultValue="administration">
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="administration">Administration</SelectItem>
-                                                <SelectItem value="cardiology">Cardiology</SelectItem>
-                                                <SelectItem value="neurology">Neurology</SelectItem>
-                                                <SelectItem value="emergency">Emergency</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="role">Role</Label>
+                                        <Label htmlFor="role">Vai trò</Label>
                                         <Select defaultValue="admin">
                                             <SelectTrigger>
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="admin">Administrator</SelectItem>
-                                                <SelectItem value="doctor">Doctor</SelectItem>
+                                                <SelectItem value="admin">Quản trị viên</SelectItem>
+                                                {/* <SelectItem value="doctor">Doctor</SelectItem>
                                                 <SelectItem value="nurse">Nurse</SelectItem>
-                                                <SelectItem value="receptionist">Receptionist</SelectItem>
+                                                <SelectItem value="receptionist">Receptionist</SelectItem> */}
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -139,7 +123,7 @@ export function SettingsPage() {
                                     <Textarea
                                         id="bio"
                                         placeholder="Tell us about yourself..."
-                                        defaultValue="Hospital administrator with 10+ years of experience in healthcare management."
+                                        defaultValue="Tôi là quản trị viên của tổng hợp của bệnh nhân, bác sĩ và dược sĩ của Vinmec."
                                     />
                                 </div>
 

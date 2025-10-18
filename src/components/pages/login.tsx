@@ -63,13 +63,6 @@ export default function LoginForm() {
                         >
                             {loading ? "Đang đăng nhập..." : "Đăng nhập"}
                         </Button>
-
-                        <div className="text-center text-sm text-gray-600">
-                            Chưa có tài khoản?{" "}
-                            <a href="#" className="text-blue-600 hover:underline">
-                                Đăng ký ngay
-                            </a>
-                        </div>
                     </form>
                 </CardContent>
             </Card>
