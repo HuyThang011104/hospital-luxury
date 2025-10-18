@@ -294,14 +294,14 @@ export function Departments() {
                         </CardHeader>
                         <CardContent>
                             <Table>
-                                <TableHeader><TableRow><TableHead>Phòng</TableHead><TableHead>Loại</TableHead><TableHead>Khoa</TableHead><TableHead>Sức chứa</TableHead><TableHead>Hành động</TableHead></TableRow></TableHeader>
+                                <TableHeader><TableRow><TableHead>Phòng</TableHead><TableHead>Loại</TableHead><TableHead>Khoa</TableHead><TableHead>Sức chứa (Giường)</TableHead><TableHead>Hành động</TableHead></TableRow></TableHeader>
                                 <TableBody>
                                     {filteredRooms.map((room) => (
                                         <TableRow key={room.id}>
                                             <TableCell className="font-medium">{room.name}</TableCell>
                                             <TableCell><Badge>{room.type}</Badge></TableCell>
                                             <TableCell>{room.department?.name || 'Không xác định'}</TableCell>
-                                            <TableCell>{room.occupied}/{room.capacity}</TableCell>
+                                            <TableCell>{room.floor}</TableCell>
                                             <TableCell>
                                                 <div className="flex space-x-1">
                                                     <Button variant="ghost" size="icon" className="h-8 w-8"><Edit className="h-4 w-4" /></Button>

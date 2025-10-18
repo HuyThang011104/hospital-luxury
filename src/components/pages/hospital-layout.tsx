@@ -37,8 +37,8 @@ interface HospitalLayoutProps {
 const menuItems = [
     { id: 'dashboard', label: 'Tổng quan', icon: LayoutDashboard, roles: ['admin'] },
     { id: 'patients', label: 'Bệnh nhân', icon: Users, roles: ['admin'] },
-    { id: 'doctors', label: 'Bác sĩ', icon: UserCheck, roles: ['admin'] },
-    { id: 'departments', label: 'Phòng ban & Phòng', icon: Building2, roles: ['admin', 'facility_manager'] },
+    { id: 'doctors', label: 'Bác sĩ', icon: UserCheck, roles: ['admin', 'pharmacist'] },
+    { id: 'departments', label: 'Phòng ban & Giường', icon: Building2, roles: ['admin', 'facility_manager', 'pharmacist'] },
     { id: 'appointments', label: 'Lịch hẹn', icon: Calendar, roles: ['admin'] },
     { id: 'records', label: 'Hồ sơ bệnh án', icon: FileText, roles: ['admin'] },
     { id: 'pharmacy', label: 'Nhà thuốc & Thiết bị', icon: Pill, roles: ['admin', 'pharmacist'] },
