@@ -113,12 +113,17 @@ export function Payments() {
                         .from('medical_record')
                         .select(`
                             id,
-                            examinations:medical_record_id (
+                            patient_id,
+                            doctor_id,
+                            diagnosis,
+                            treatment,
+                            record_date,
+                            examination:examination!medical_record_id (
                                 id,
                                 examination_type,
                                 details,
                                 examination_date,
-                                lab_tests:examination_id (
+                                lab_test:lab_test!examination_id (
                                     id,
                                     test_type,
                                     result,
@@ -128,11 +133,11 @@ export function Payments() {
                             )
                         `)
                         .eq('patient_id', payment.patient_id);
-
                     if (medicalError) {
                         console.warn('Error fetching medical records for payment:', payment.id, medicalError);
                         return payment;
                     }
+                    console.log('Dữ liệu medical records:', medicalRecords);
 
                     // Tạo appointment object với medical record data
                     const appointmentData = medicalRecords && medicalRecords.length > 0 ? {
@@ -289,8 +294,8 @@ export function Payments() {
             {/* Notification */}
             {notification && (
                 <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${notification.type === 'success'
-                        ? 'bg-gray-900 text-white'
-                        : 'bg-red-500 text-white'
+                    ? 'bg-gray-900 text-white'
+                    : 'bg-red-500 text-white'
                     }`}>
                     <div className="flex items-center">
                         {notification.type === 'success' ? (
