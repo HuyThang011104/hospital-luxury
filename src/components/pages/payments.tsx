@@ -10,55 +10,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Separator } from '../ui/separator';
-import { Search, Filter, Download, Eye, DollarSign, CreditCard, Shield, FileText } from 'lucide-react';
+import { Search, Filter, Eye, DollarSign, CreditCard, Shield, FileText } from 'lucide-react';
 
 import { supabase } from '@/utils/backend/client';
-
+import type { Examination } from '@/interfaces/examination';
+import type { IMedicalRecord } from '@/interfaces/medical_record';
+import type { ILabTest } from '@/interfaces/lab_test';
 
 interface IPatient {
     id: number;
     full_name: string;
-
 }
 
-
-interface IPayment {
-    id: number;
-    patient_id: number;
-    amount: number;
-    method: 'Insurance' | 'Card' | 'Cash';
-    status: 'Paid' | 'Pending' | 'Cancelled';
-    payment_date: string;
-    invoice_id: string;
-    patient?: IPatient;
-    appointment?: {
-        id: number;
-        appointment_date: Date;
-        medical_record?: {
-            id: number;
-            examinations: Array<{
-                id: number;
-                examination_type: string;
-                details: string | null;
-                examination_date: Date;
-                lab_tests: Array<{
-                    id: number;
-                    test_type: string;
-                    result: string | null;
-                    test_date: Date | null;
-                    price: number;
-                }>;
-            }>;
-        };
+interface IExaminationWithLabs extends Examination {
+    medical_record: IMedicalRecord & {
+        patient: IPatient;
     };
-
-    services?: { name: string; amount: number }[];
+    lab_tests: ILabTest[];
+    total_amount?: number;
+    payment_status: 'Paid' | 'Pending';
+    payment_method?: 'Insurance' | 'Card' | 'Cash';
+    payment_date?: string | null;
 }
-
 
 interface IInsurancePolicy {
     id: number;
-    patient_id: number; // Foreign key
+    patient_id: number;
     provider_name: string;
     policy_number: string;
     valid_from: string;
@@ -70,14 +47,13 @@ interface IInsurancePolicy {
 
 export function Payments() {
 
-    const [payments, setPayments] = useState<IPayment[]>([]);
+    const [examinations, setExaminations] = useState<IExaminationWithLabs[]>([]);
     const [insurancePolicies, setInsurancePolicies] = useState<IInsurancePolicy[]>([]);
     const [loading, setLoading] = useState(true);
 
 
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
-    const [methodFilter, setMethodFilter] = useState('All');
     const [selectedPayment, setSelectedPayment] = useState<number | null>(null);
     const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
     const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
@@ -87,76 +63,61 @@ export function Payments() {
 
 
     useEffect(() => {
-
-        fetchPayments();
+        fetchExaminationsWithLabs();
         fetchInsurancePolicies();
     }, []);
 
-    const fetchPayments = async () => {
+    const fetchExaminationsWithLabs = async () => {
         setLoading(true);
         try {
-            // Lấy payments với patient
-            const { data: paymentsData, error: paymentsError } = await supabase
-                .from('payment')
+            // Lấy examinations với lab_tests và patient info
+            const { data: examinationsData, error: examinationsError } = await supabase
+                .from('examination')
                 .select(`
                     *,
-                    patient:patient_id ( id, full_name )
-                `);
+                    medical_record:medical_record_id (
+                    id,
+                    patient_id,
+                    doctor_id,
+                    diagnosis,
+                    treatment,
+                    record_date,
+                    patient:patient_id (
+                        id,
+                        full_name
+                    )
+                    ),
+                    lab_test:lab_test!examination_id (
+                    id,
+                    test_type,
+                    result,
+                    test_date,
+                    price
+                    )
+                `)
+                .order('examination_date', { ascending: false });
 
-            if (paymentsError) throw paymentsError;
+            if (examinationsError) throw examinationsError;
 
-            // Với mỗi payment, lấy medical records của patient đó
-            const paymentsWithMedicalData = await Promise.all(
-                paymentsData.map(async (payment) => {
-                    // Lấy medical records của patient
-                    const { data: medicalRecords, error: medicalError } = await supabase
-                        .from('medical_record')
-                        .select(`
-                            id,
-                            patient_id,
-                            doctor_id,
-                            diagnosis,
-                            treatment,
-                            record_date,
-                            examination:examination!medical_record_id (
-                                id,
-                                examination_type,
-                                details,
-                                examination_date,
-                                lab_test:lab_test!examination_id (
-                                    id,
-                                    test_type,
-                                    result,
-                                    test_date,
-                                    price
-                                )
-                            )
-                        `)
-                        .eq('patient_id', payment.patient_id);
-                    if (medicalError) {
-                        console.warn('Error fetching medical records for payment:', payment.id, medicalError);
-                        return payment;
-                    }
-                    console.log('Dữ liệu medical records:', medicalRecords);
+            // Calculate total amount for each examination
+            const examinationsWithTotals = examinationsData?.map(exam => {
+                console.log('Raw exam data:', { id: exam.id, status: exam.status, statusType: typeof exam.status });
 
-                    // Tạo appointment object với medical record data
-                    const appointmentData = medicalRecords && medicalRecords.length > 0 ? {
-                        id: medicalRecords[0].id,
-                        appointment_date: null,
-                        medical_record: medicalRecords[0]
-                    } : null;
+                const mappedExam = {
+                    ...exam,
+                    total_amount: exam.lab_test?.reduce((sum: number, test: ILabTest) => sum + test.price, 0) || 0,
+                    payment_status: exam.status === 'Pending' || exam.status === 'Paid' ? exam.status as 'Pending' | 'Paid' : 'Pending',
+                    payment_method: undefined,
+                    payment_date: exam.status === 'Paid' ? new Date().toISOString() : null
+                };
 
-                    return {
-                        ...payment,
-                        appointment: appointmentData
-                    };
-                })
-            );
+                console.log('Mapped exam:', { id: mappedExam.id, payment_status: mappedExam.payment_status });
+                return mappedExam;
+            }) || [];
 
-            console.log('Dữ liệu payment với medical record data:', paymentsWithMedicalData);
-            setPayments(paymentsWithMedicalData as IPayment[]);
+            setExaminations(examinationsWithTotals as IExaminationWithLabs[]);
         } catch (error) {
-            console.error('Error fetching payments:', error);
+            console.error('Error fetching examinations:', error);
         } finally {
             setLoading(false);
         }
@@ -178,21 +139,27 @@ export function Payments() {
             console.error('Error fetching insurance policies:', error);
         }
     };
-    const filteredPayments = payments.filter(payment => {
-        const patientName = payment.patient?.full_name || '';
-        const invoiceId = payment.invoice_id || '';
-        const matchesSearch = patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            invoiceId.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = statusFilter === 'All' || payment.status === statusFilter;
-        const matchesMethod = methodFilter === 'All' || payment.method === methodFilter;
 
-        return matchesSearch && matchesStatus && matchesMethod;
+    // Filter functions
+    const filteredExaminations = examinations.filter(examination => {
+        const patientName = examination.medical_record?.patient?.full_name || '';
+        const examinationType = examination.examination_type || '';
+
+        // Search filter
+        const matchesSearch = patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            examinationType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            examination.id.toString().includes(searchTerm);
+
+        // Status filter
+        const matchesStatus = statusFilter === 'All' || examination.payment_status === statusFilter;
+
+        return matchesSearch && matchesStatus;
     });
 
     const getStatusBadge = (status: string) => {
-        const variant = status === 'Paid' ? 'default' :
-            status === 'Pending' ? 'secondary' : 'destructive';
-        return <Badge variant={variant}>{status}</Badge>;
+        const variant = status === 'Paid' ? 'default' : 'secondary';
+        const label = status === 'Paid' ? 'Đã thanh toán' : 'Chờ thanh toán';
+        return <Badge variant={variant}>{label}</Badge>;
     };
 
     const getMethodIcon = (method: string) => {
@@ -204,29 +171,18 @@ export function Payments() {
         }
     };
 
-    const calculateTotalFromLabTests = (payment: IPayment): number => {
-        const medicalRecord = payment.appointment?.medical_record;
-        if (!medicalRecord?.examinations) return payment.amount;
-
-        let total = 0;
-        medicalRecord.examinations.forEach(examination => {
-            if (examination.lab_tests) {
-                examination.lab_tests.forEach(labTest => {
-                    total += labTest.price;
-                });
-            }
-        });
-        return total;
+    const calculateTotalFromLabTests = (examination: IExaminationWithLabs): number => {
+        return examination.total_amount || 0;
     };
 
-    const openInvoiceDetail = (paymentId: number) => {
-        setSelectedPayment(paymentId);
+    const openInvoiceDetail = (examinationId: number) => {
+        setSelectedPayment(examinationId);
         setIsInvoiceDialogOpen(true);
     };
 
-    const openPaymentDialog = (paymentId: number) => {
-        setSelectedPayment(paymentId);
-        setSelectedMethod('Cash'); // Reset về mặc định
+    const openPaymentDialog = (examinationId: number) => {
+        setSelectedPayment(examinationId);
+        setSelectedMethod('Cash');
         setIsPaymentDialogOpen(true);
     };
 
@@ -236,25 +192,50 @@ export function Payments() {
         setProcessingPayment(true);
         try {
             // Tính toán tổng số tiền từ các lab tests
-            const paymentData = payments.find(p => p.id === selectedPayment);
-            const totalAmount = paymentData ? calculateTotalFromLabTests(paymentData) : 0;
+            const examinationData = examinations.find(e => e.id === selectedPayment);
+            const totalAmount = examinationData ? calculateTotalFromLabTests(examinationData) : 0;
 
-            const { error } = await supabase
-                .from('payment')
+            // Update examination status in database
+            const { error: updateError } = await supabase
+                .from('examination')
                 .update({
-                    method: selectedMethod,
-                    status: 'Paid',
-                    payment_date: new Date().toISOString(),
-                    amount: totalAmount
+                    status: 'Paid'
                 })
-                .eq('id', selectedPayment)
-                .select()
-                .single();
+                .eq('id', selectedPayment);
 
-            if (error) throw error;
+            if (updateError) {
+                throw new Error(`Cập nhật trạng thái thất bại: ${updateError.message}`);
+            }
 
-            // Cập nhật lại dữ liệu payments
-            await fetchPayments();
+            // Create payment record
+            const { error: paymentError } = await supabase
+                .from('payment')
+                .insert({
+                    patient_id: examinationData?.medical_record?.patient?.id,
+                    amount: totalAmount,
+                    payment_date: new Date().toISOString(),
+                    method: selectedMethod,
+                    status: 'Paid'
+                });
+
+            if (paymentError) {
+                console.warn('Lưu payment record thất bại:', paymentError.message);
+            }
+
+            // Update local state
+            const updatedExaminations = examinations.map(exam => {
+                if (exam.id === selectedPayment) {
+                    return {
+                        ...exam,
+                        payment_status: 'Paid' as const,
+                        payment_method: selectedMethod,
+                        payment_date: new Date().toISOString()
+                    };
+                }
+                return exam;
+            });
+
+            setExaminations(updatedExaminations);
 
             // Đóng dialog
             setIsPaymentDialogOpen(false);
@@ -266,28 +247,28 @@ export function Payments() {
                 message: `Thanh toán thành công ${totalAmount.toLocaleString('vi-VN')} VNĐ bằng phương thức ${selectedMethod === 'Cash' ? 'Tiền mặt' : selectedMethod === 'Card' ? 'Thẻ' : 'Bảo hiểm'}`
             });
 
-            // Tự động ẩn thông báo sau 3 giây
             setTimeout(() => setNotification(null), 3000);
 
         } catch (error) {
             console.error('Lỗi khi thanh toán:', error);
             setNotification({
                 type: 'error',
-                message: 'Thanh toán thất bại. Vui lòng thử lại.'
+                message: error instanceof Error ? error.message : 'Thanh toán thất bại. Vui lòng thử lại.'
             });
 
-            // Tự động ẩn thông báo sau 3 giây
             setTimeout(() => setNotification(null), 3000);
         } finally {
             setProcessingPayment(false);
         }
     };
 
-    const selectedPaymentData = selectedPayment ? payments.find(p => p.id === selectedPayment) : null;
+    const selectedPaymentData = selectedPayment ? examinations.find(e => e.id === selectedPayment) : null;
 
     if (loading) {
         return <div className="text-center py-10">Đang tải ghi nhận thanh toán...</div>;
     }
+
+
 
     return (
         <div className="space-y-6">
@@ -338,13 +319,12 @@ export function Payments() {
                     <Card>
                         <CardHeader>
                             <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
-                                <CardTitle>Ghi nhận thanh toán ({filteredPayments.length})</CardTitle>
-                                {/* ... Phần filter inputs giữ nguyên ... */}
+                                <CardTitle>Ghi nhận thanh toán ({filteredExaminations.length})</CardTitle>
                                 <div className="flex flex-col sm:flex-row gap-2">
                                     <div className="relative">
                                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                                         <Input
-                                            placeholder="Tìm kiếm theo bệnh nhân hoặc hóa đơn..."
+                                            placeholder="Tìm kiếm theo tên bệnh nhân..."
                                             value={searchTerm}
                                             onChange={(e) => setSearchTerm(e.target.value)}
                                             className="pl-8 w-64"
@@ -356,27 +336,11 @@ export function Payments() {
                                             <SelectValue placeholder="Trạng thái" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="All">Tất cả trạng thái</SelectItem>
+                                            <SelectItem value="All">Tất cả</SelectItem>
                                             <SelectItem value="Paid">Đã thanh toán</SelectItem>
                                             <SelectItem value="Pending">Chờ xử lý</SelectItem>
-                                            <SelectItem value="Cancelled">Đã hủy</SelectItem>
                                         </SelectContent>
                                     </Select>
-                                    <Select value={methodFilter} onValueChange={setMethodFilter}>
-                                        <SelectTrigger className="w-32">
-                                            <SelectValue placeholder="Phương thức" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="All">Tất cả phương thức</SelectItem>
-                                            <SelectItem value="Cash">Tiền mặt</SelectItem>
-                                            <SelectItem value="Card">Thẻ</SelectItem>
-                                            <SelectItem value="Insurance">Bảo hiểm</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <Button variant="outline">
-                                        <Download className="mr-2 h-4 w-4" />
-                                        Xuất file
-                                    </Button>
                                 </div>
                             </div>
                         </CardHeader>
@@ -387,69 +351,96 @@ export function Payments() {
                                         <TableRow>
                                             <TableHead>Bệnh nhân</TableHead>
                                             <TableHead>Số tiền</TableHead>
-                                            <TableHead>Phương thức</TableHead>
                                             <TableHead>Trạng thái</TableHead>
                                             <TableHead>Ngày thanh toán</TableHead>
                                             <TableHead className="text-right">Hành động</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {filteredPayments.map((payment) => (
-                                            <TableRow key={payment.id} className={payment.status === 'Paid' ? 'bg-gray-50' : payment.status === 'Cancelled' ? 'bg-red-50' : ''}>
-                                                <TableCell>
-                                                    <div className="flex items-center space-x-2">
-                                                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                                            <span className="text-xs font-medium text-blue-600">
-                                                                {payment.patient?.full_name?.charAt(0) || 'N/A'}
-                                                            </span>
+                                        {filteredExaminations.map((examination) => {
+                                            const isPaid = examination.payment_status === 'Paid';
+                                            const shouldShowPaymentButton = !isPaid; // Hiển thị nếu KHÔNG phải là 'Paid'
+
+                                            console.log(`Exam ${examination.id}:`, {
+                                                payment_status: examination.payment_status,
+                                                shouldShowPaymentButton
+                                            });
+
+                                            return (
+                                                <TableRow
+                                                    key={examination.id}
+                                                    className={isPaid ? 'bg-gray-50' : ''} // Dùng isPaid
+                                                >
+                                                    {/* Cột Tên bệnh nhân */}
+                                                    <TableCell>
+                                                        <div className="flex items-center space-x-2">
+                                                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                                                <span className="text-xs font-medium text-blue-600">
+                                                                    {examination.medical_record?.patient?.full_name?.charAt(0) || 'N/A'}
+                                                                </span>
+                                                            </div>
+                                                            <span className="font-medium">{examination.medical_record?.patient?.full_name || 'N/A'}</span>
                                                         </div>
-                                                        <span className="font-medium">{payment.patient?.full_name || 'N/A'}</span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <span className="font-semibold text-black">
-                                                        {calculateTotalFromLabTests(payment).toLocaleString('vi-VN')} VNĐ
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center space-x-2">
-                                                        {getMethodIcon(payment.method)}
-                                                        <span className="font-medium">{payment.method}</span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {getStatusBadge(payment.status)}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <span className="text-sm text-gray-600">
-                                                        {payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('vi-VN') : 'Chưa thanh toán'}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex justify-end space-x-2">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => openInvoiceDetail(payment.id)}
-                                                            className="hover:bg-blue-50"
-                                                        >
-                                                            <Eye className="h-4 w-4" />
-                                                        </Button>
-                                                        {payment.status === 'Pending' && (
+                                                    </TableCell>
+
+                                                    {/* Cột Tổng tiền và Loại khám */}
+                                                    <TableCell>
+                                                        <div className="space-y-1">
+                                                            <span className="font-semibold text-black">
+                                                                {calculateTotalFromLabTests(examination).toLocaleString('vi-VN')} VNĐ
+                                                            </span>
+                                                            <div className="text-xs text-gray-500">
+                                                                {examination.examination_type}
+                                                            </div>
+                                                        </div>
+                                                    </TableCell>
+
+                                                    {/* Cột Trạng thái thanh toán (Status Badge) */}
+                                                    <TableCell>
+                                                        {getStatusBadge(examination.payment_status)}
+                                                    </TableCell>
+
+                                                    {/* Cột Ngày thanh toán (Cải tiến 2: Dùng payment_date nếu có) */}
+                                                    <TableCell>
+                                                        <span className="text-sm text-gray-600">
+                                                            {/* Hiển thị ngày thanh toán nếu đã có, ngược lại hiển thị "Chưa thanh toán" */}
+                                                            {examination.payment_date
+                                                                ? new Date(examination.payment_date).toLocaleDateString('vi-VN')
+                                                                : 'Chưa thanh toán'
+                                                            }
+                                                        </span>
+                                                    </TableCell>
+
+                                                    {/* Cột Hành động (Actions) */}
+                                                    <TableCell>
+                                                        <div className="flex justify-end space-x-2">
+                                                            {/* Nút Xem chi tiết */}
                                                             <Button
-                                                                variant="default"
+                                                                variant="ghost"
                                                                 size="sm"
-                                                                onClick={() => openPaymentDialog(payment.id)}
-                                                                className="bg-black hover:bg-gray-800"
+                                                                onClick={() => openInvoiceDetail(examination.id)}
+                                                                className="hover:bg-blue-50"
                                                             >
-                                                                <DollarSign className="h-4 w-4 mr-1" />
-                                                                Thanh toán
+                                                                <Eye className="h-4 w-4" />
                                                             </Button>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
+
+                                                            {/* Nút Thanh toán (chỉ hiển thị nếu shouldShowPaymentButton là true) */}
+                                                            {shouldShowPaymentButton && (
+                                                                <Button
+                                                                    variant="default"
+                                                                    size="sm"
+                                                                    onClick={() => openPaymentDialog(examination.id)}
+                                                                    className="bg-black hover:bg-gray-800"
+                                                                >
+                                                                    <DollarSign className="h-4 w-4 mr-1" />
+                                                                    Thanh toán
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
                                     </TableBody>
                                 </Table>
                             </div>
@@ -513,14 +504,14 @@ export function Payments() {
                             <div className="flex justify-between items-start">
                                 <div>
                                     <h3 className="text-lg font-semibold">Bệnh viện Y tế HealthCare</h3>
-                                    <p className="text-sm text-muted-foreground">Hóa đơn #{selectedPaymentData.invoice_id}</p>
-                                    <p className="text-sm text-muted-foreground">Ngày: {new Date(selectedPaymentData.payment_date).toLocaleDateString()}</p>
+                                    <p className="text-sm text-muted-foreground">Hóa đơn #{selectedPaymentData?.id || 'N/A'}</p>
+                                    <p className="text-sm text-muted-foreground">Ngày: {selectedPaymentData.payment_date ? new Date(selectedPaymentData.payment_date).toLocaleDateString() : new Date().toLocaleDateString()}</p>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-sm text-muted-foreground">Bệnh nhân:</p>
-                                    <p className="font-medium">{selectedPaymentData.patient?.full_name || 'N/A'}</p>
+                                    <p className="font-medium">{selectedPaymentData?.medical_record?.patient?.full_name || 'N/A'}</p>
                                     <div className="mt-2">
-                                        {getStatusBadge(selectedPaymentData.status)}
+                                        {getStatusBadge(selectedPaymentData.payment_status)}
                                     </div>
                                 </div>
                             </div>
@@ -529,23 +520,23 @@ export function Payments() {
 
                             <div>
                                 <h4 className="font-medium mb-3">Dịch vụ & Phí</h4>
-                                {selectedPaymentData.appointment?.medical_record?.examinations?.map((examination) => (
-                                    examination.lab_tests?.map((labTest) => (
-                                        <div key={labTest.id} className="flex justify-between py-2 border-b">
-                                            <div>
-                                                <p className="font-medium">{labTest.test_type}</p>
-                                                <p className="text-sm text-muted-foreground">{examination.examination_type}</p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="font-medium">{labTest.price.toLocaleString('vi-VN')} VNĐ</p>
-                                                {labTest.test_date && (
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {new Date(labTest.test_date).toLocaleDateString('vi-VN')}
-                                                    </p>
-                                                )}
-                                            </div>
+                                {selectedPaymentData?.lab_tests?.map((labTest) => (
+                                    <div key={labTest.id} className="flex justify-between py-2 border-b">
+                                        <div>
+                                            <p className="font-medium">{labTest.test_type}</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {selectedPaymentData?.examination_type}
+                                            </p>
                                         </div>
-                                    ))
+                                        <div className="text-right">
+                                            <p className="font-medium">{labTest.price.toLocaleString('vi-VN')} VNĐ</p>
+                                            {labTest.test_date && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    {new Date(labTest.test_date).toLocaleDateString('vi-VN')}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
 
@@ -555,13 +546,13 @@ export function Payments() {
                             <div className="space-y-2">
                                 <div className="flex justify-between font-semibold text-lg">
                                     <span>Tổng cộng:</span>
-                                    <span>{calculateTotalFromLabTests(selectedPaymentData).toLocaleString('vi-VN')} VNĐ</span>
+                                    <span>{selectedPaymentData ? calculateTotalFromLabTests(selectedPaymentData).toLocaleString('vi-VN') : 0} VNĐ</span>
                                 </div>
                                 <div className="flex justify-between items-center pt-2">
                                     <span>Phương thức thanh toán:</span>
                                     <div className="flex items-center space-x-2">
-                                        {getMethodIcon(selectedPaymentData.method)}
-                                        <span>{selectedPaymentData.method}</span>
+                                        {selectedPaymentData?.payment_method && getMethodIcon(selectedPaymentData.payment_method)}
+                                        <span>Chưa thanh toán</span>
                                     </div>
                                 </div>
                             </div>
@@ -583,19 +574,19 @@ export function Payments() {
                     {selectedPaymentData && (
                         <div className="space-y-4">
                             <div className="bg-gray-50 p-3 rounded-lg">
-                                <p className="text-sm text-muted-foreground">Hóa đơn</p>
-                                <p className="font-medium">#{selectedPaymentData.invoice_id}</p>
+                                <p className="text-sm text-muted-foreground">Mã xét nghiệm</p>
+                                <p className="font-medium">#{selectedPaymentData?.id || 'N/A'}</p>
                             </div>
 
                             <div className="bg-gray-50 p-3 rounded-lg">
                                 <p className="text-sm text-muted-foreground">Bệnh nhân</p>
-                                <p className="font-medium">{selectedPaymentData.patient?.full_name || 'N/A'}</p>
+                                <p className="font-medium">{selectedPaymentData?.medical_record?.patient?.full_name || 'N/A'}</p>
                             </div>
 
                             <div className="bg-gray-50 p-3 rounded-lg">
                                 <p className="text-sm text-muted-foreground">Số tiền thanh toán</p>
                                 <p className="text-xl font-bold text-black">
-                                    {calculateTotalFromLabTests(selectedPaymentData).toLocaleString('vi-VN')} VNĐ
+                                    {selectedPaymentData ? calculateTotalFromLabTests(selectedPaymentData).toLocaleString('vi-VN') : 0} VNĐ
                                 </p>
                             </div>
 
