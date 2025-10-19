@@ -4,4 +4,5 @@ export interface Examination {
   examination_type: string;
   details: string | null;
   examination_date: Date;
+  status: string;
 }
