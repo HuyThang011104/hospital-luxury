@@ -30,7 +30,13 @@ interface IPrescriptionWithDetails extends IPrescription {
 
 // Extended interface for lab tests with related data
 interface ILabTestWithDetails extends ILabTest {
-    medical_record: IMedicalRecordWithDetails;
+    examination: {
+        id: number;
+        examination_type: string;
+        details: string | null;
+        examination_date: Date;
+        medical_record: IMedicalRecordWithDetails;
+    };
 }
 
 export function MedicalRecords() {
@@ -101,11 +107,22 @@ export function MedicalRecords() {
             const { data, error } = await supabase
                 .from('lab_test')
                 .select(`
-                    id, medical_record_id, test_type, result, test_date,
-                    medical_record ( 
-                        id, 
-                        patient ( id, full_name, phone, email ),
-                        doctor ( id, full_name, username, phone, email, specialty ( id, name ) )
+                    id, examination_id, test_type, result, test_date, price,
+                    examination:examination_id (
+                        id,
+                        examination_type,
+                        details,
+                        examination_date,
+                        medical_record:medical_record_id (
+                            id,
+                            patient_id,
+                            doctor_id,
+                            diagnosis,
+                            treatment,
+                            record_date,
+                            patient ( id, full_name, phone, email ),
+                            doctor ( id, full_name, username, phone, email, specialty ( id, name ) )
+                        )
                     )
                 `)
                 .order('test_date', { ascending: false });
@@ -165,7 +182,7 @@ export function MedicalRecords() {
     };
 
     const getRecordLabTests = (recordId: number) => {
-        return labTests.filter(t => t.medical_record_id === recordId);
+        return labTests.filter(t => t.examination?.medical_record?.id === recordId);
     };
 
     if (loading) {
@@ -377,6 +394,10 @@ export function MedicalRecords() {
                                                                     </div>
                                                                     <div className="grid grid-cols-2 gap-4 text-sm">
                                                                         <div>
+                                                                            <span className="text-muted-foreground">Loại xét nghiệm: </span>
+                                                                            <span className="font-medium">{test.examination?.examination_type || 'N/A'}</span>
+                                                                        </div>
+                                                                        <div>
                                                                             <span className="text-muted-foreground">Kết quả: </span>
                                                                             <span className="font-medium">{test.result || 'Chờ xử lý'}</span>
                                                                         </div>
@@ -384,9 +405,13 @@ export function MedicalRecords() {
                                                                             <span className="text-muted-foreground">Ngày xét nghiệm: </span>
                                                                             <span>{test.test_date ? new Date(test.test_date).toLocaleDateString() : 'N/A'}</span>
                                                                         </div>
+                                                                        <div>
+                                                                            <span className="text-muted-foreground">Chi phí: </span>
+                                                                            <span className="font-medium">{test.price?.toLocaleString('vi-VN') || 0} VNĐ</span>
+                                                                        </div>
                                                                     </div>
                                                                     <p className="text-sm text-muted-foreground">
-                                                                        Yêu cầu bởi Dr. {test.medical_record?.doctor?.full_name || 'N/A'}
+                                                                        Yêu cầu bởi Dr. {test.examination?.medical_record?.doctor?.full_name || 'N/A'}
                                                                     </p>
                                                                 </div>
                                                                 <Button variant="outline" size="sm">
