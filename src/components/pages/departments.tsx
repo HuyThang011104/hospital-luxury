@@ -614,7 +614,6 @@ export function Departments() {
                                         <TableHead>Phòng</TableHead>
                                         <TableHead>Khoa</TableHead>
                                         <TableHead>Trạng thái</TableHead>
-                                        <TableHead>Bệnh nhân</TableHead>
                                         <TableHead>Hành động</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -625,7 +624,6 @@ export function Departments() {
                                             <TableCell>{bed.room?.name || 'Không xác định'}</TableCell>
                                             <TableCell>{bed.room?.department?.name || 'Không xác định'}</TableCell>
                                             <TableCell><Badge variant={getBedStatusColor(bed.status)}>{bed.status}</Badge></TableCell>
-                                            <TableCell>{bed.patient?.name || '---'}</TableCell>
                                             <TableCell>
                                                 <div className="flex space-x-1">
                                                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditBedDialog(bed)}><Edit className="h-4 w-4" /></Button>
