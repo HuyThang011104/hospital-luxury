@@ -244,4 +244,5 @@ Ensure all environment variables are properly configured:
 
 ---
 
-**Built with ❤️ for Vinmec Healthcare System**
+- Email: lehuythangvnsao@gmail.com
+  **Built with ❤️ for Vinmec Healthcare System**
