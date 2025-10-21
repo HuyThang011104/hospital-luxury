@@ -1,3 +1,0 @@
-export const projectId = "cpmnhtmdfqzzxusgtpso";
-export const publicAnonKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwbW5odG1kZnF6enh1c2d0cHNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4MDE3MDksImV4cCI6MjA2OTM3NzcwOX0.TAeTQIJ_I961S-uXWRld8SkCvFzO0HHIJMnxzMm1Yig";

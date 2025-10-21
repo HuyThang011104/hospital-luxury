@@ -1,0 +1,249 @@
+Warining: Vui lòng dựa vào cấu trúc bên dưới để tạo cấu trúc cơ sở dữ liệu, không coppy
+vào luôn bởi sẽ bị lỗi. Vui lòng xem chi tiết hơn trong thư mục src/interface và src/types.
+Lưu ý vì đây là dự án có sự tham gia của nhiều thành viên, nên code khá lộn xộn và không được
+kiểm soát chặt chẽ. src/types từng thứ có thể không đúng so với nghiệp vụ dự án.
+Vui lòng check lại từng file code để thực sự hiểu về cách hoạt động của
+chúng. 
+
+create table public.appointment (
+  id serial not null,
+  patient_id integer not null,
+  doctor_id integer not null,
+  appointment_date timestamp without time zone not null,
+  shift_id integer null,
+  status character varying(15) null default 'Pending'::character varying,
+  notes text null,
+  constraint appointment_pkey primary key (id),
+  constraint appointment_doctor_id_fkey foreign KEY (doctor_id) references doctor (id) on delete CASCADE,
+  constraint appointment_patient_id_fkey foreign KEY (patient_id) references patient (id) on delete CASCADE,
+  constraint appointment_shift_id_fkey foreign KEY (shift_id) references shift (id) on delete set null
+) TABLESPACE pg_default;
+
+create table public.bed (
+  id serial not null,
+  room_id integer not null,
+  bed_number character varying(10) not null,
+  status character varying(20) null default 'Available'::character varying,
+  constraint bed_pkey primary key (id),
+  constraint bed_room_id_fkey foreign KEY (room_id) references room (id) on delete CASCADE
+) TABLESPACE pg_default;
+
+create table public.certificate (
+  id serial not null,
+  doctor_id integer not null,
+  name character varying(100) not null,
+  issued_by character varying(100) null,
+  issue_date date null,
+  expiry_date date null,
+  constraint certificate_pkey primary key (id),
+  constraint certificate_doctor_id_fkey foreign KEY (doctor_id) references doctor (id) on delete CASCADE
+) TABLESPACE pg_default;
+
+create table public.department (
+  id serial not null,
+  name character varying(100) not null,
+  description text null,
+  location character varying(255) null,
+  constraint department_pkey primary key (id),
+  constraint department_name_key unique (name)
+) TABLESPACE pg_default;
+
+create table public.doctor (
+  id serial not null,
+  specialty_id integer not null,
+  full_name character varying(100) not null,
+  username character varying(50) not null,
+  password character varying(255) not null,
+  phone character varying(20) null,
+  birth_date date null,
+  gender character varying(10) null default 'Male'::character varying,
+  status character varying(10) null default 'Active'::character varying,
+  email character varying(100) null,
+  join_date date null,
+  role character varying(10) null default 'Doctor'::character varying,
+  address character varying(255) null,
+  constraint doctor_pkey primary key (id),
+  constraint doctor_email_key unique (email),
+  constraint doctor_username_key unique (username),
+  constraint doctor_specialty_id_fkey foreign KEY (specialty_id) references specialty (id)
+) TABLESPACE pg_default;
+
+create table public.doctor_work_schedule (
+  id serial not null,
+  doctor_id integer not null,
+  shift_id integer not null,
+  room_id integer not null,
+  work_date date not null,
+  status character varying(15) null default 'Scheduled'::character varying,
+  constraint doctor_work_schedule_pkey primary key (id),
+  constraint doctor_work_schedule_doctor_id_fkey foreign KEY (doctor_id) references doctor (id) on delete CASCADE,
+  constraint doctor_work_schedule_room_id_fkey foreign KEY (room_id) references room (id),
+  constraint doctor_work_schedule_shift_id_fkey foreign KEY (shift_id) references shift (id) on delete CASCADE
+) TABLESPACE pg_default;
+
+create table public.equipment (
+  id serial not null,
+  name character varying(100) not null,
+  quantity integer null default 0,
+  location character varying(255) null,
+  status character varying(20) null default 'Available'::character varying,
+  constraint equipment_pkey primary key (id)
+) TABLESPACE pg_default;
+
+create table public.examination (
+  id serial not null,
+  medical_record_id integer not null,
+  examination_type character varying(50) not null,
+  details text null,
+  examination_date timestamp without time zone null default CURRENT_TIMESTAMP,
+  status character varying(50) null,
+  constraint examination_pkey primary key (id),
+  constraint fk_medical_record foreign KEY (medical_record_id) references medical_record (id) on delete CASCADE
+) TABLESPACE pg_default;
+
+create table public.hard_test (
+  id serial not null,
+  name character varying(255) not null,
+  price numeric(10, 2) not null,
+  constraint hard_test_pkey primary key (id)
+) TABLESPACE pg_default;
+
+create table public.insurance (
+  id serial not null,
+  patient_id integer not null,
+  provider_name character varying(100) null,
+  policy_number character varying(50) null,
+  valid_from date null,
+  valid_to date null,
+  constraint insurance_pkey primary key (id),
+  constraint insurance_patient_id_fkey foreign KEY (patient_id) references patient (id) on delete CASCADE
+) TABLESPACE pg_default;
+
+create table public.lab_test (
+  id serial not null,
+  test_type character varying(100) not null,
+  result text null,
+  test_date timestamp without time zone null default CURRENT_TIMESTAMP,
+  price numeric(10, 2) null,
+  examination_id integer null,
+  constraint lab_test_pkey primary key (id),
+  constraint fk_examination_test foreign KEY (examination_id) references examination (id) on delete CASCADE,
+  constraint lab_test_price_check check ((price >= (0)::numeric))
+) TABLESPACE pg_default;
+
+create table public.leave_request (
+  id serial not null,
+  doctor_id integer not null,
+  request_date date not null,
+  start_date date not null,
+  end_date date not null,
+  reason character varying(255) null,
+  status character varying(10) null default 'Pending'::character varying,
+  constraint leave_request_pkey primary key (id),
+  constraint leave_request_doctor_id_fkey foreign KEY (doctor_id) references doctor (id) on delete CASCADE
+) TABLESPACE pg_default;
+
+create table public.manager (
+  user_id serial not null,
+  username character varying(50) not null,
+  password character varying(255) not null,
+  full_name character varying(100) not null,
+  email character varying(100) null,
+  phone_number character varying(15) null,
+  role public.manager_role not null,
+  is_active boolean null default true,
+  constraint manager_pkey primary key (user_id),
+  constraint manager_email_key unique (email),
+  constraint manager_username_key unique (username)
+) TABLESPACE pg_default;
+
+create table public.medical_record (
+  id serial not null,
+  patient_id integer not null,
+  doctor_id integer not null,
+  diagnosis text null,
+  treatment text null,
+  record_date timestamp without time zone null default CURRENT_TIMESTAMP,
+  appointment_id integer null,
+  constraint medical_record_pkey primary key (id),
+  constraint fk_medical_record_appointment foreign KEY (appointment_id) references appointment (id) on update CASCADE on delete set null,
+  constraint medical_record_doctor_id_fkey foreign KEY (doctor_id) references doctor (id),
+  constraint medical_record_patient_id_fkey foreign KEY (patient_id) references patient (id)
+) TABLESPACE pg_default;
+
+create table public.medicine (
+  id serial not null,
+  name character varying(100) not null,
+  description text null,
+  quantity integer null default 0,
+  unit_price numeric(12, 2) null default 0.00,
+  expiry_date date null,
+  constraint medicine_pkey primary key (id),
+  constraint medicine_name_key unique (name)
+) TABLESPACE pg_default;
+
+create table public.patient (
+  id serial not null,
+  full_name character varying(100) not null,
+  personal_id character varying(50) null,
+  password character varying(255) null,
+  phone character varying(20) null,
+  birth_date date null,
+  gender character varying(10) null default 'Male'::character varying,
+  status character varying(10) null default 'Active'::character varying,
+  email character varying(100) null,
+  join_date date null,
+  address character varying(255) null,
+  constraint patient_pkey primary key (id),
+  constraint patient_email_key unique (email),
+  constraint patient_personal_id_key unique (personal_id)
+) TABLESPACE pg_default;
+
+create table public.payment (
+  id serial not null,
+  patient_id integer not null,
+  amount numeric(12, 2) not null,
+  payment_date timestamp without time zone null default CURRENT_TIMESTAMP,
+  method character varying(10) null default 'Cash'::character varying,
+  status character varying(10) null default 'Pending'::character varying,
+  constraint payment_pkey primary key (id),
+  constraint payment_patient_id_fkey foreign KEY (patient_id) references patient (id) on delete CASCADE
+) TABLESPACE pg_default;
+
+create table public.prescription (
+  id serial not null,
+  medical_record_id integer not null,
+  medicine_id integer not null,
+  dosage character varying(50) null,
+  frequency character varying(50) null,
+  duration character varying(50) null,
+  constraint prescription_pkey primary key (id),
+  constraint prescription_medical_record_id_fkey foreign KEY (medical_record_id) references medical_record (id),
+  constraint prescription_medicine_id_fkey foreign KEY (medicine_id) references medicine (id)
+) TABLESPACE pg_default;
+
+create table public.room (
+  id serial not null,
+  department_id integer not null,
+  name character varying(50) not null,
+  type character varying(20) null default 'Normal'::character varying,
+  floor character varying(20) null,
+  constraint room_pkey primary key (id),
+  constraint room_department_id_fkey foreign KEY (department_id) references department (id) on delete CASCADE
+) TABLESPACE pg_default;
+
+create table public.shift (
+  id serial not null,
+  name character varying(100) not null,
+  start_time time without time zone not null,
+  end_time time without time zone not null,
+  constraint shift_pkey primary key (id)
+) TABLESPACE pg_default;
+
+create table public.specialty (
+  id serial not null,
+  name character varying(100) not null,
+  description text null,
+  constraint specialty_pkey primary key (id),
+  constraint specialty_name_key unique (name)
+) TABLESPACE pg_default;
