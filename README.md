@@ -245,5 +245,6 @@ Ensure all environment variables are properly configured:
 ---
 
 - Email: lehuythangvnsao@gmail.com
+- sponsorship: 259441487-VPB
 
   **Built with ❤️ for Vinmec Healthcare System**
