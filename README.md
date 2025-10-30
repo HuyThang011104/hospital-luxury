@@ -245,6 +245,10 @@ Ensure all environment variables are properly configured:
 ---
 
 - Email: lehuythangvnsao@gmail.com
+- Contact: 0367132831 
 - sponsorship: 259441487-VPB
+
+### Note
+- patient-hospital and doctor-hospital project was private. Contact with host to add your project, please!
 
   **Built with ❤️ for Vinmec Healthcare System**
